@@ -351,7 +351,7 @@ function DiscussionSection({ fileId, repositoryId, userId }: { fileId: string; r
                             <p className="text-xs mt-1">Use @username to mention someone, #L42 to reference a line</p>
                         </div>
                     ) : (
-                        (threadData?.messages || []).map((msg) => (
+                        [...(threadData?.messages || [])].reverse().map((msg) => (
                             <div key={msg.id} className="p-3 rounded-lg bg-muted/30 border group">
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="flex items-center gap-2 text-sm text-muted-foreground">

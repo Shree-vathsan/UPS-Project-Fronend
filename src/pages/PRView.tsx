@@ -125,7 +125,7 @@ export default function PRView() {
                                     riskVariant === 'warning' ? 'text-orange-600 dark:text-orange-400' :
                                         'text-green-600 dark:text-green-400'
                                     }`}>
-                                    {(riskAnalysis.riskScore * 100).toFixed(0)}%
+                                    {Math.round(riskAnalysis.riskScore * 100)}%
                                 </div>
                             </div>
                         </CardHeader>
@@ -137,7 +137,7 @@ export default function PRView() {
                                     <CardHeader className="pb-3">
                                         <CardDescription>Structural Overlap</CardDescription>
                                         <CardTitle className="text-3xl">
-                                            {(riskAnalysis.structuralOverlap * 100).toFixed(0)}%
+                                            {Math.round(riskAnalysis.structuralOverlap * 100)}%
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent>
@@ -151,7 +151,7 @@ export default function PRView() {
                                     <CardHeader className="pb-3">
                                         <CardDescription>Semantic Overlap</CardDescription>
                                         <CardTitle className="text-3xl">
-                                            {(riskAnalysis.semanticOverlap * 100).toFixed(0)}%
+                                            {Math.round(riskAnalysis.semanticOverlap * 100)}%
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent>
@@ -177,7 +177,7 @@ export default function PRView() {
                                                         </div>
                                                     </div>
                                                     <Badge variant={getRiskColor(conflict.risk)}>
-                                                        {(conflict.risk * 100).toFixed(0)}%
+                                                        {Math.round(conflict.risk * 100)}%
                                                     </Badge>
                                                 </div>
                                             </CardContent>

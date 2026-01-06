@@ -568,6 +568,18 @@ export function useCreateRepoStickyNote() {
     });
 }
 
+export function useUploadRepoDocument() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ userId, repositoryId, file, taggedFileIds }: { userId: string; repositoryId: string; file: File; taggedFileIds?: string[] }) =>
+            api.uploadRepoDocument(userId, repositoryId, file, taggedFileIds),
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['repoStickyNotes', variables.repositoryId] });
+        },
+    });
+}
+
+
 // Repository-Level Discussion
 export function useRepoDiscussion(repositoryId: string | undefined) {
     return useQuery({

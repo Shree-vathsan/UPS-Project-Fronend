@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react"
 
-type Theme = "light" | "dark" | "night" | "system"
-type ResolvedTheme = "light" | "dark" | "night"
+type Theme = "light" | "dark" | "night" | "neon" | "amethyst" | "oceanic" | "pastel" | "twilight" | "tropical" | "system"
+type ResolvedTheme = "light" | "dark" | "night" | "neon" | "amethyst" | "oceanic" | "pastel" | "twilight" | "tropical"
 
 type ThemeProviderProps = {
     children: React.ReactNode
@@ -48,7 +48,7 @@ export function ThemeProvider({
     useEffect(() => {
         const root = window.document.documentElement
 
-        root.classList.remove("theme-light", "theme-dark", "theme-night")
+        root.classList.remove("theme-light", "theme-dark", "theme-night", "theme-neon", "theme-amethyst", "theme-oceanic", "theme-pastel", "theme-twilight", "theme-tropical")
 
         if (theme === "system") {
             const systemTheme = getSystemTheme()
@@ -58,13 +58,7 @@ export function ThemeProvider({
         }
 
         setResolvedTheme(theme as ResolvedTheme)
-        if (theme === "light") {
-            root.classList.add("theme-light")
-        } else if (theme === "dark") {
-            root.classList.add("theme-dark")
-        } else if (theme === "night") {
-            root.classList.add("theme-night")
-        }
+        root.classList.add(`theme-${theme}`)
     }, [theme])
 
     // Listen for system theme changes when in system mode
@@ -76,7 +70,7 @@ export function ThemeProvider({
             const newTheme = e.matches ? "dark" : "light"
             setResolvedTheme(newTheme)
             const root = window.document.documentElement
-            root.classList.remove("theme-light", "theme-dark", "theme-night")
+            root.classList.remove("theme-light", "theme-dark", "theme-night", "theme-neon", "theme-amethyst", "theme-oceanic", "theme-pastel", "theme-twilight", "theme-tropical")
             root.classList.add(`theme-${newTheme}`)
         }
 

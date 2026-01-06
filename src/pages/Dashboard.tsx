@@ -694,10 +694,8 @@ export default function Dashboard({ user, token }: DashboardProps) {
                                                         </div>
                                                         <div className="ml-4 flex items-center gap-2">
                                                             {isAnalyzed && (
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="bg-white text-destructive hover:bg-destructive hover:text-white transition-colors h-9 w-9 shadow-sm"
+                                                                <button
+                                                                    className="text-white hover:text-destructive transition-colors cursor-pointer"
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
                                                                         setDeleteConfirmRepo({ id: repo.analyzedRepositoryId, name: `${repo.login}/${repo.name}` });
@@ -705,7 +703,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
                                                                     title="Delete Analysis"
                                                                 >
                                                                     <Trash2 className="h-4 w-4" />
-                                                                </Button>
+                                                                </button>
                                                             )}
                                                             {isAnalyzing ? (
                                                                 <Button disabled size="sm">
@@ -926,15 +924,13 @@ export default function Dashboard({ user, token }: DashboardProps) {
                                                         </div>
                                                     </div>
                                                     <div className="flex gap-2 items-center">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="bg-white text-destructive hover:bg-destructive hover:text-white transition-colors h-9 w-9 shadow-sm"
+                                                        <button
+                                                            className="text-white hover:text-destructive transition-colors cursor-pointer"
                                                             onClick={() => setDeleteConfirmRepo({ id: repo.id, name: `${repo.ownerUsername}/${repo.name}` })}
                                                             title="Delete Analysis"
                                                         >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
+                                                            <Trash2 className="h-5 w-5" />
+                                                        </button>
                                                         <Button
                                                             onClick={() => {
                                                                 if (repo.status === 'ready') {

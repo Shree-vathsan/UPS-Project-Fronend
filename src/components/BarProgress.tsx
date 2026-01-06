@@ -23,7 +23,7 @@ export default function BarProgress({
             {(label || showPercentage) && (
                 <div className="flex items-center justify-between text-sm">
                     {label && <span className="text-muted-foreground">{label}</span>}
-                    {showPercentage && <span className="font-medium">{percentage.toFixed(0)}%</span>}
+                    {showPercentage && <span className="font-medium">{Math.round(percentage)}%</span>}
                 </div>
             )}
             <div className="w-full h-2 bg-muted rounded-full overflow-hidden">

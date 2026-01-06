@@ -201,7 +201,7 @@ export default function PullRequestView({ user: _user }: PullRequestViewProps) {
                                         </div>
                                         <div className="text-right flex-shrink-0">
                                             <div className="text-lg font-bold text-green-600 dark:text-green-400">
-                                                {reviewer.percentage.toFixed(1)}%
+                                                {Math.round(reviewer.percentage)}%
                                             </div>
                                             <div className="text-xs text-muted-foreground">
                                                 {reviewer.filesContributed} {reviewer.filesContributed === 1 ? 'file' : 'files'}
@@ -235,7 +235,7 @@ export default function PullRequestView({ user: _user }: PullRequestViewProps) {
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-semibold">PR #{conflict.prNumber}</span>
                                                     <Badge variant="destructive">
-                                                        {conflict.conflictPercentage.toFixed(0)}% overlap
+                                                        {Math.round(conflict.conflictPercentage)}% overlap
                                                     </Badge>
                                                 </div>
                                             </div>

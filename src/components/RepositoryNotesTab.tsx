@@ -2,8 +2,8 @@ import { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { StickyNote, MessageSquare, Trash2, FileText, Download, User, GitBranch, File as FileIcon, X } from 'lucide-react';
-import { useRepoStickyNotes, useCreateRepoStickyNote, useDeleteStickyNote, useRepoDiscussion, usePostRepoMessage, useDeleteDiscussionMessage, useUsersWithRepoAccess, useBranches, useFiles, useRepoPersonalNotes, useCreateRepoPersonalNote, useDeletePersonalNote } from '@/hooks/useApiQueries';
+import { StickyNote, MessageSquare, Trash2, FileText, Download, User, GitBranch, File as FileIcon, X, Upload } from 'lucide-react';
+import { useRepoStickyNotes, useCreateRepoStickyNote, useUploadRepoDocument, useDeleteStickyNote, useRepoDiscussion, usePostRepoMessage, useDeleteDiscussionMessage, useUsersWithRepoAccess, useBranches, useFiles, useRepoPersonalNotes, useCreateRepoPersonalNote, useDeletePersonalNote } from '@/hooks/useApiQueries';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
@@ -149,9 +149,11 @@ function StickyNotesSection({ repositoryId, userId, onFileClick, files: allFiles
     const [selectedFileIds, setSelectedFileIds] = useState<string[]>([]);
     const [selectedBranchIds, setSelectedBranchIds] = useState<string[]>([]);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const { data: notes, isLoading } = useRepoStickyNotes(repositoryId);
     const createNote = useCreateRepoStickyNote();
+    const uploadDocument = useUploadRepoDocument();
     const deleteNote = useDeleteStickyNote();
     const { data: filesData } = useFiles(repositoryId);
     const { data: branchesData } = useBranches(repositoryId);
@@ -233,6 +235,23 @@ function StickyNotesSection({ repositoryId, userId, onFileClick, files: allFiles
         if (!userId) return;
         await deleteNote.mutateAsync({ noteId, userId, fileId: undefined });
     };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !userId) return;
+
+        await uploadDocument.mutateAsync({
+            userId,
+            repositoryId,
+            file,
+            taggedFileIds: selectedFileIds.length > 0 ? selectedFileIds : undefined
+        });
+
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
 
     const toggleBranch = (branchId: string) => {
         setSelectedBranchIds(prev =>
@@ -363,6 +382,23 @@ function StickyNotesSection({ repositoryId, userId, onFileClick, files: allFiles
                         >
                             <StickyNote className="h-4 w-4 mr-1" />
                             Add Note
+                        </Button>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileUpload}
+                            className="hidden"
+                            accept=".pdf,.txt,.docx,.doc,.md"
+                        />
+                        <Button
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploadDocument.isPending}
+                            size="sm"
+                            variant="outline"
+                            className="border text-foreground hover:bg-muted"
+                        >
+                            <Upload className="h-4 w-4 mr-1" />
+                            Upload Document
                         </Button>
                         <Button
                             onClick={() => setShowBranchSelector(!showBranchSelector)}
@@ -665,7 +701,7 @@ function DiscussionSection({ repositoryId, userId, onFileClick, files: allFiles 
                             <p className="text-xs mt-1">Use @username to mention, #filename to tag files</p>
                         </div>
                     ) : (
-                        (threadData?.messages || []).map((msg) => (
+                        [...(threadData?.messages || [])].reverse().map((msg) => (
                             <div key={msg.id} className="p-3 rounded-lg bg-muted/30 border group">
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
