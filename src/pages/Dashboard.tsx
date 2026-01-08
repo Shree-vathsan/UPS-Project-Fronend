@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Package, BarChart, Plus, Loader, RefreshCw, AlertTriangle, Search, Info, ChevronDown, ChevronUp, Home, Github, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -120,12 +120,11 @@ export default function Dashboard({ user, token }: DashboardProps) {
     const [findError, setFindError] = useState<string>('');
     const [findResultsPerPage, setFindResultsPerPage] = useState(10);
     const [findSortBy, setFindSortBy] = useState<'stars' | 'forks' | 'updated' | 'watchers'>('stars');
-    const [lastFetchedCount, setLastFetchedCount] = useState(0);
     const [findCurrentPage, setFindCurrentPage] = useState(1);
     const [findItemsPerPage] = useState(10);
 
     // Cache invalidation helper
-    const { invalidateAll } = useInvalidateRepositories();
+    useInvalidateRepositories();
 
     // State for minimum loading animation duration
     const [isManualRefreshingAnalyzed, setIsManualRefreshingAnalyzed] = useState(false);
@@ -354,7 +353,6 @@ export default function Dashboard({ user, token }: DashboardProps) {
             console.log('🔢 Total Count:', data.total_count);
 
             setFindRepositories(data.items || []);
-            setLastFetchedCount(findResultsPerPage);
         } catch (error: any) {
             console.error('❌ Failed to search repositories:', error);
             setFindError(error.message || 'Failed to search repositories');
@@ -696,10 +694,8 @@ export default function Dashboard({ user, token }: DashboardProps) {
                                                         </div>
                                                         <div className="ml-4 flex items-center gap-2">
                                                             {isAnalyzed && (
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="bg-white text-destructive hover:bg-destructive hover:text-white transition-colors h-9 w-9 shadow-sm"
+                                                                <button
+                                                                    className="text-white hover:text-destructive transition-colors cursor-pointer"
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
                                                                         setDeleteConfirmRepo({ id: repo.analyzedRepositoryId, name: `${repo.login}/${repo.name}` });
@@ -707,7 +703,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
                                                                     title="Delete Analysis"
                                                                 >
                                                                     <Trash2 className="h-4 w-4" />
-                                                                </Button>
+                                                                </button>
                                                             )}
                                                             {isAnalyzing ? (
                                                                 <Button disabled size="sm">
@@ -928,15 +924,13 @@ export default function Dashboard({ user, token }: DashboardProps) {
                                                         </div>
                                                     </div>
                                                     <div className="flex gap-2 items-center">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="bg-white text-destructive hover:bg-destructive hover:text-white transition-colors h-9 w-9 shadow-sm"
+                                                        <button
+                                                            className="text-white hover:text-destructive transition-colors cursor-pointer"
                                                             onClick={() => setDeleteConfirmRepo({ id: repo.id, name: `${repo.ownerUsername}/${repo.name}` })}
                                                             title="Delete Analysis"
                                                         >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
+                                                            <Trash2 className="h-5 w-5" />
+                                                        </button>
                                                         <Button
                                                             onClick={() => {
                                                                 if (repo.status === 'ready') {

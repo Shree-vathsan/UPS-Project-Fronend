@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Github, Code, AlertTriangle, CheckCircle, Files, Download } from 'lucide-react';
+import { Github, Code, AlertTriangle, Files } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { api } from '../utils/api';
 import ThemeSelector from '../components/ThemeSelector';
@@ -78,7 +78,7 @@ export default function Login({ snowfallEnabled = false, toggleSnowfall = () => 
                                         <strong className="block mb-2">Troubleshooting:</strong>
                                         <ul className="list-disc list-inside space-y-1">
                                             <li>Make sure backend is running: <code>dotnet run</code></li>
-                                            <li>Backend should be at: http://localhost:5000</li>
+                                            <li>Backend should be at: https://codefamily-backend-854884449726.us-central1.run.app</li>
                                             <li>Supabase database must be configured</li>
                                         </ul>
                                     </div>

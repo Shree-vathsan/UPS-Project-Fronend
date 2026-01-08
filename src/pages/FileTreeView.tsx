@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import FileViewer from '../components/FileViewer.tsx';
 import FileAnalysis from '../components/FileAnalysis.tsx';
+import { API_BASE_URL } from '../config';
 
 export default function FileTreeView() {
     const { fileId } = useParams<{ fileId: string }>();
@@ -16,7 +17,7 @@ export default function FileTreeView() {
 
     const loadFile = async () => {
         try {
-            const response = await fetch(`http://localhost:5000/files/${fileId}`);
+            const response = await fetch(`${API_BASE_URL}/files/${fileId}`);
             const data = await response.json();
             setFile(data.file);
             setAnalysis(data);

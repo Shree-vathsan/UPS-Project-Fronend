@@ -1,4 +1,4 @@
-import { Sun, Moon, Monitor } from "lucide-react";
+import { Sun, Moon, Monitor, Gem, Waves, Palette, CloudMoon, Zap, Palmtree } from "lucide-react";
 import { useTheme } from "./theme-provider";
 import {
     DropdownMenu,
@@ -35,6 +35,36 @@ export default function ThemeSelector() {
                     <Moon className="mr-2 h-4 w-4 fill-current" />
                     <span>Night</span>
                     {theme === "night" && <span className="ml-auto">✓</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setTheme("amethyst")}>
+                    <Gem className="mr-2 h-4 w-4" />
+                    <span>Amethyst</span>
+                    {theme === "amethyst" && <span className="ml-auto">✓</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setTheme("oceanic")}>
+                    <Waves className="mr-2 h-4 w-4" />
+                    <span>Oceanic</span>
+                    {theme === "oceanic" && <span className="ml-auto">✓</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setTheme("pastel")}>
+                    <Palette className="mr-2 h-4 w-4" />
+                    <span>Pastel</span>
+                    {theme === "pastel" && <span className="ml-auto">✓</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setTheme("twilight")}>
+                    <CloudMoon className="mr-2 h-4 w-4" />
+                    <span>Twilight</span>
+                    {theme === "twilight" && <span className="ml-auto">✓</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setTheme("neon")}>
+                    <Zap className="mr-2 h-4 w-4" />
+                    <span>Neon</span>
+                    {theme === "neon" && <span className="ml-auto">✓</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setTheme("tropical")}>
+                    <Palmtree className="mr-2 h-4 w-4" />
+                    <span>Tropical</span>
+                    {theme === "tropical" && <span className="ml-auto">✓</span>}
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setTheme("system")}>
                     <Monitor className="mr-2 h-4 w-4" />

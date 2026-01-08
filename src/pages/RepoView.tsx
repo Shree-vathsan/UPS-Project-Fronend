@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useRepository, useBranches, useBranchCommits, usePullRequests, useBranchFiles } from '../hooks/useApiQueries';
 import { useTheme } from '@/components/theme-provider';
+import { API_BASE_URL } from '../config';
 
 interface RepoViewProps {
     user: any;
@@ -116,7 +117,7 @@ export default function RepoView({ user: _user }: RepoViewProps) {
         if (isRefreshing && repository) {
             interval = setInterval(async () => {
                 try {
-                    const res = await fetch(`http://localhost:5000/repositories/${repositoryId}`);
+                    const res = await fetch(`${API_BASE_URL}/repositories/${repositoryId}`);
                     const data = await res.json();
 
                     // Check if timestamp updated
@@ -139,7 +140,7 @@ export default function RepoView({ user: _user }: RepoViewProps) {
 
         setIsRefreshing(true);
         try {
-            await fetch(`http://localhost:5000/repositories/${repositoryId}/refresh`, {
+            await fetch(`${API_BASE_URL}/repositories/${repositoryId}/refresh`, {
                 method: 'POST'
             });
             // Don't set isRefreshing(false) here - wait for polling to detect the change

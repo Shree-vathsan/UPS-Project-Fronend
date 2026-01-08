@@ -1,6 +1,6 @@
-import { BrowserRouter, Routes, Route, useNavigate, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate, Link, useParams, Navigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
-import { Code, LogOut, Snowflake, User, Sun, Moon, Monitor, Check } from 'lucide-react';
+import { Code, LogOut, Snowflake, User, Sun, Moon, Monitor, Check, Gem, Waves, Palette, CloudMoon, Zap, Palmtree } from 'lucide-react';
 import Snowfall from 'react-snowfall';
 import Dashboard from './pages/Dashboard.tsx';
 import RepoView from './pages/RepoView.tsx';
@@ -54,7 +54,12 @@ interface AppContentProps {
     snowfallEnabled: boolean;
     toggleSnowfall: () => void;
 }
-
+function RepoRedirect() {
+    const { repositoryId } = useParams();
+    // Preserve query parameters (like ?tab=notes)
+    const query = window.location.search;
+    return <Navigate to={`/repo/${repositoryId}${query}`} replace />;
+}
 // Inner component that can use useNavigate (must be inside BrowserRouter)
 function AppContent({ snowfallEnabled, toggleSnowfall }: AppContentProps) {
     const navigate = useNavigate();
@@ -233,6 +238,36 @@ function AppContent({ snowfallEnabled, toggleSnowfall }: AppContentProps) {
                                             <span>Night</span>
                                             {theme === "night" && <Check className="h-4 w-4 ml-auto" />}
                                         </DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => setTheme("amethyst")} className={`cursor-pointer ${resolvedTheme === 'light' ? 'focus:text-blue-700' : ''}`}>
+                                            <Gem className="mr-2 h-4 w-4" />
+                                            <span>Amethyst</span>
+                                            {theme === "amethyst" && <Check className="h-4 w-4 ml-auto" />}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => setTheme("oceanic")} className={`cursor-pointer ${resolvedTheme === 'light' ? 'focus:text-blue-700' : ''}`}>
+                                            <Waves className="mr-2 h-4 w-4" />
+                                            <span>Oceanic</span>
+                                            {theme === "oceanic" && <Check className="h-4 w-4 ml-auto" />}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => setTheme("pastel")} className={`cursor-pointer ${resolvedTheme === 'light' ? 'focus:text-blue-700' : ''}`}>
+                                            <Palette className="mr-2 h-4 w-4" />
+                                            <span>Pastel</span>
+                                            {theme === "pastel" && <Check className="h-4 w-4 ml-auto" />}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => setTheme("twilight")} className={`cursor-pointer ${resolvedTheme === 'light' ? 'focus:text-blue-700' : ''}`}>
+                                            <CloudMoon className="mr-2 h-4 w-4" />
+                                            <span>Twilight</span>
+                                            {theme === "twilight" && <Check className="h-4 w-4 ml-auto" />}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => setTheme("neon")} className={`cursor-pointer ${resolvedTheme === 'light' ? 'focus:text-blue-700' : ''}`}>
+                                            <Zap className="mr-2 h-4 w-4" />
+                                            <span>Neon</span>
+                                            {theme === "neon" && <Check className="h-4 w-4 ml-auto" />}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => setTheme("tropical")} className={`cursor-pointer ${resolvedTheme === 'light' ? 'focus:text-blue-700' : ''}`}>
+                                            <Palmtree className="mr-2 h-4 w-4" />
+                                            <span>Tropical</span>
+                                            {theme === "tropical" && <Check className="h-4 w-4 ml-auto" />}
+                                        </DropdownMenuItem>
                                         <DropdownMenuItem onSelect={() => setTheme("system")} className={`cursor-pointer ${resolvedTheme === 'light' ? 'focus:text-blue-700' : ''}`}>
                                             <Monitor className="h-4 w-4 mr-2" />
                                             <span>System</span>
@@ -320,6 +355,7 @@ function AppContent({ snowfallEnabled, toggleSnowfall }: AppContentProps) {
                         })()
                     } />
                     <Route path="/login" element={<Login snowfallEnabled={snowfallEnabled} toggleSnowfall={toggleSnowfall} />} />
+                    <Route path="/repository/:repositoryId" element={<RepoRedirect />} />
                     <Route path="/repo/:repositoryId" element={user ? <RepoView user={user} /> : <Login snowfallEnabled={snowfallEnabled} toggleSnowfall={toggleSnowfall} />} />
                     <Route path="/commit/:commitId" element={<CommitView />} />
                     <Route path="/pr/:prId" element={<PRView />} />

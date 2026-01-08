@@ -6,8 +6,8 @@ import CircularProgress from './CircularProgress';
 import BarProgress from './BarProgress';
 import SectionHeader from './SectionHeader';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FaCheck, FaCheckCircle } from "react-icons/fa";
-import { FaTimes, FaTimesCircle } from "react-icons/fa";
+import { FaCheck } from "react-icons/fa";
+import { FaTimes } from "react-icons/fa";
 import { useFileEnhancedAnalysis, useFileSummary, queryKeys } from '../hooks/useApiQueries';
 
 
@@ -407,45 +407,47 @@ export default function FileAnalysis({ file, analysis }: FileAnalysisProps) {
 
                 {analysis.ownership && analysis.ownership.length > 0 ? (
                     <div style={{ display: 'grid', gap: '12px' }}>
-                        {analysis.ownership.map((owner: any, index: number) => {
-                            const score = owner.semanticScore || 0;
-                            const percentage = (score * 100).toFixed(1);
-                            return (
-                                <div key={index} className="flex items-center gap-4 p-4 bg-card/30 rounded-lg border">
-                                    {owner.avatarUrl && (
-                                        <img
-                                            src={owner.avatarUrl}
-                                            alt={owner.authorName}
-                                            className="w-12 h-12 rounded-full border-2 border-primary object-cover"
-                                        />
-                                    )}
-                                    <div className="flex-1">
-                                        <div className="font-semibold mb-2 text-sm text-foreground">
-                                            {owner.authorName || 'Unknown'}
-                                        </div>
-                                        <div className="w-full h-2.5 bg-border rounded-full overflow-hidden mb-1.5">
-                                            <div
-                                                className="h-full bg-gradient-to-r from-primary to-primary/80 rounded-full transition-all duration-500"
-                                                style={{ width: `${percentage}%` }}
+                        {analysis.ownership
+                            .filter((owner: any) => (owner.semanticScore || 0) > 0)
+                            .map((owner: any, index: number) => {
+                                const score = owner.semanticScore || 0;
+                                const percentageDecimal = (score * 100).toFixed(1); // For display with decimal
+                                return (
+                                    <div key={index} className="flex items-center gap-4 p-4 bg-card/30 rounded-lg border">
+                                        {owner.avatarUrl && (
+                                            <img
+                                                src={owner.avatarUrl}
+                                                alt={owner.authorName}
+                                                className="w-12 h-12 rounded-full border-2 border-primary object-cover"
                                             />
+                                        )}
+                                        <div className="flex-1">
+                                            <div className="font-semibold mb-2 text-sm text-foreground">
+                                                {owner.authorName || 'Unknown'}
+                                            </div>
+                                            <div className="w-full h-2.5 bg-border rounded-full overflow-hidden mb-1.5">
+                                                <div
+                                                    className="h-full bg-gradient-to-r from-primary to-primary/80 rounded-full transition-all duration-500"
+                                                    style={{ width: `${percentageDecimal}%` }}
+                                                />
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                Semantic contribution: {percentageDecimal}%
+                                            </div>
                                         </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            Semantic contribution: {percentage}%
-                                        </div>
-                                    </div>
-                                    <div className="min-w-20 text-center">
-                                        <div
-                                            className="w-[70px] h-[70px] rounded-full flex items-center justify-center mx-auto"
-                                            style={{ background: `conic-gradient(hsl(var(--primary)) ${score * 360}deg, hsl(var(--border)) 0deg)` }}
-                                        >
-                                            <div className="w-14 h-14 rounded-full bg-background flex items-center justify-center text-base font-bold text-primary">
-                                                {percentage.split('.')[0]}%
+                                        <div className="min-w-20 text-center">
+                                            <div
+                                                className="w-[70px] h-[70px] rounded-full flex items-center justify-center mx-auto"
+                                                style={{ background: `conic-gradient(hsl(var(--primary)) ${score * 360}deg, hsl(var(--border)) 0deg)` }}
+                                            >
+                                                <div className="w-14 h-14 rounded-full bg-background flex items-center justify-center text-base font-bold text-primary">
+                                                    {percentageDecimal}%
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
                     </div>
                 ) : (
                     <div className="text-center py-10 text-muted-foreground">

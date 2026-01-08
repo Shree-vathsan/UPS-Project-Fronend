@@ -3,7 +3,7 @@ import {
     BarChart, Bar, ScatterChart, Scatter,
     XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell
 } from 'recharts';
-import { Users, CheckCircle, BarChart as BarChartIcon, Calendar, Handshake, Trophy, Sparkles, Folder, User } from 'lucide-react';
+import { Users, CheckCircle, BarChart as BarChartIcon, Calendar, Handshake, Trophy, Sparkles, User } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import InfoTooltip from './InfoTooltip';
 import { useTeamInsights } from '../hooks/useApiQueries';
@@ -18,13 +18,12 @@ export default function TeamInsights({ repositoryId, branchName }: TeamInsightsP
     const { data: teamData, isLoading: loading } = useTeamInsights(repositoryId, branchName);
 
     // Process data with useMemo for performance
-    const { contributors, ownershipData, metrics } = useMemo(() => {
+    const { contributors, metrics } = useMemo(() => {
         if (!teamData) {
             return { contributors: [], ownershipData: [], metrics: null };
         }
 
         const contributors = teamData.contributors || [];
-        const ownershipData = teamData.ownershipData || [];
         const metrics = {
             totalContributors: teamData.totalContributors || 0,
             activeContributors: teamData.activeContributors || 0,
@@ -33,7 +32,7 @@ export default function TeamInsights({ repositoryId, branchName }: TeamInsightsP
             collaborationScore: Math.min(100, (teamData.totalContributors || 0) * 15)
         };
 
-        return { contributors, ownershipData, metrics };
+        return { contributors, metrics };
     }, [teamData]);
 
     // Theme-aware colors (will work with all themes)
@@ -134,9 +133,9 @@ export default function TeamInsights({ repositoryId, branchName }: TeamInsightsP
                                 cy="48"
                                 r="40"
                                 fill="none"
-                                stroke={metrics?.collaborationScore > 70 ? 'hsl(var(--accent))' : 'hsl(var(--primary))'}
+                                stroke={(metrics?.collaborationScore ?? 0) > 70 ? 'hsl(var(--accent))' : 'hsl(var(--primary))'}
                                 strokeWidth="8"
-                                strokeDasharray={`${(metrics?.collaborationScore / 100) * 251} 251`}
+                                strokeDasharray={`${((metrics?.collaborationScore ?? 0) / 100) * 251} 251`}
                                 strokeLinecap="round"
                             />
                         </svg>
@@ -149,7 +148,7 @@ export default function TeamInsights({ repositoryId, branchName }: TeamInsightsP
                             Based on number of contributors, commit distribution, and code ownership patterns.
                         </p>
                         <div className="mt-3 flex gap-2 flex-wrap">
-                            {metrics?.collaborationScore > 70 && (
+                            {(metrics?.collaborationScore ?? 0) > 70 && (
                                 <div className="px-3 py-1 bg-accent/20 rounded-full text-xs text-accent font-medium">
                                     Excellent collaboration
                                 </div>
@@ -243,7 +242,7 @@ export default function TeamInsights({ repositoryId, branchName }: TeamInsightsP
                             cursor={{ strokeDasharray: '3 3' }}
                         />
                         <Scatter name="Contributors" data={contributors} fill="hsl(var(--primary))">
-                            {contributors.map((entry, index) => (
+                            {contributors.map((entry: any, index: number) => (
                                 <Cell
                                     key={`cell-${index}`}
                                     fill={entry.active ? 'hsl(var(--accent))' : 'hsl(var(--muted-foreground))'}
@@ -313,7 +312,7 @@ export default function TeamInsights({ repositoryId, branchName }: TeamInsightsP
                     <InfoTooltip text="Complete list of all committed contributors with their commit count, lines changed, and activity status. Green border indicates active in last 7 days." />
                 </div>
                 <div className="grid gap-2 mt-4">
-                    {contributors.map((contributor, index) => (
+                    {contributors.map((contributor: any, index: number) => (
                         <div key={index} className={`flex items-center gap-3 p-3 rounded-lg border ${contributor.active ? 'border-accent bg-accent/5' : 'border-border bg-muted/30'}`}>
                             <div
                                 className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold"

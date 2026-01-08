@@ -53,10 +53,10 @@
     /* Pure white */
     --foreground: 222 47 11;
     /* Deep slate #0F172A */
-    --card: 0 0 99;
-    /* Off white #FCFCFC */
+    --card: 214 40% 96%;
+    /* Soft blue tint #F0F4F8 */
     --card-foreground: 222 47 11;
-    --popover: 0 0 100;
+    --popover: 214 40% 96%;
     --popover-foreground: 222 47 11;
     --primary: 221 83 53;
     /* Modern blue #2563EB */
@@ -148,30 +148,223 @@
     --radius: 0.75rem;
   }
 
+
+
+
+
+
+
+
+
+  .theme-amethyst {
+    /* Amethyst: #000000 (Black), #9929EA (Purple), #CC66DA (Light Purple), #FAEB92 (Pale Yellow) */
+    --background: 0 0% 0%;
+    /* #000000 */
+    --foreground: 51 91% 78%;
+    /* #FAEB92 (Pale Yellow for text) */
+    --card: 275 82% 5%;
+    /* Very dark purple/black for card */
+    --card-foreground: 51 91% 78%;
+    --popover: 275 82% 5%;
+    --popover-foreground: 51 91% 78%;
+    --primary: 275 82% 54%;
+    /* #9929EA (Purple) */
+    --primary-foreground: 51 91% 78%;
+    --secondary: 293 61% 63%;
+    /* #CC66DA (Light Purple) */
+    --secondary-foreground: 0 0% 0%;
+    --muted: 275 30% 20%;
+    --muted-foreground: 293 40% 60%;
+    --accent: 51 91% 78%;
+    /* #FAEB92 */
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 275 82% 54%;
+    /* Purple border */
+    --input: 275 82% 54%;
+    --ring: 51 91% 78%;
+    --radius: 0.75rem;
+  }
+
+  .theme-oceanic {
+    /* Oceanic: #001F3D (Dark Blue), #ED985F (Orange), #F7B980 (Light Orange), #E6E6E6 (Light Grey) */
+    --background: 210 100% 12%;
+    /* #001F3D */
+    --foreground: 0 0% 90%;
+    /* #E6E6E6 (Light Grey) */
+    --card: 210 50% 10%;
+    /* Darker blue */
+    --card-foreground: 0 0% 90%;
+    --popover: 210 50% 10%;
+    --popover-foreground: 0 0% 90%;
+    --primary: 24 80% 65%;
+    /* #ED985F (Orange) */
+    --primary-foreground: 210 100% 12%;
+    --secondary: 29 88% 74%;
+    /* #F7B980 (Light Orange) */
+    --secondary-foreground: 210 100% 12%;
+    --muted: 210 40% 20%;
+    --muted-foreground: 210 20% 60%;
+    --accent: 29 88% 74%;
+    --accent-foreground: 210 100% 12%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 24 80% 65%;
+    /* Orange border */
+    --input: 24 80% 65%;
+    --ring: 29 88% 74%;
+    --radius: 0.75rem;
+  }
+
+  .theme-pastel {
+    /* Pastel: #D6A99D (Pink), #FBF3D5 (Pale Yellow), #D6DAC8 (Sage), #9CAFAA (Teal) */
+    --background: 48 62 95%;
+    /* #FBF3D5 (Pale Yellow) */
+    --foreground: 163 22 26%;
+    /* #9CAFAA darker for text */
+    --card: 87 30% 92%;
+    /* Soft sage tint */
+    --card-foreground: 163 22 26%;
+    --popover: 87 30% 92%;
+    --popover-foreground: 163 22 26%;
+    --primary: 11 40 73%;
+    /* #D6A99D (Pink) */
+    --primary-foreground: 163 22 26%;
+    --secondary: 163 22 68%;
+    /* #9CAFAA (Teal) */
+    --secondary-foreground: 0 0 100%;
+    --muted: 87 36 85%;
+    --muted-foreground: 163 22 40%;
+    --accent: 87 36 82%;
+    /* #D6DAC8 (Sage) */
+    --accent-foreground: 163 22 26%;
+    --destructive: 0 70 50%;
+    --destructive-foreground: 0 0 100%;
+    --border: 163 22 68%;
+    /* Teal border */
+    --input: 163 22 68%;
+    --ring: 11 40 73%;
+    --radius: 0.75rem;
+  }
+
+  .theme-twilight {
+    /* Twilight: #4B5D67 (Slate), #322F3D (Dark Purple), #59405C (Purple), #87556F (Mauve) */
+    --background: 251 14 20%;
+    /* #322F3D (Dark Purple) */
+    --foreground: 195 18 85%;
+    /* Light slate for text */
+    --card: 251 14 15%;
+    /* Darker purple */
+    --card-foreground: 195 18 85%;
+    --popover: 251 14 15%;
+    --popover-foreground: 195 18 85%;
+    --primary: 330 22 50%;
+    /* #87556F (Mauve) */
+    --primary-foreground: 195 18 85%;
+    --secondary: 291 18 30%;
+    /* #59405C (Purple) */
+    --secondary-foreground: 195 18 85%;
+    --muted: 195 18 34%;
+    --muted-foreground: 330 22 70%;
+    --accent: 195 18 40%;
+    /* #4B5D67 (Slate) */
+    --accent-foreground: 195 18 85%;
+    --destructive: 0 70 50%;
+    --destructive-foreground: 0 0 100%;
+    --border: 291 18 30%;
+    /* Purple border */
+    --input: 291 18 30%;
+    --ring: 330 22 50%;
+    --radius: 0.75rem;
+  }
+
+  .theme-neon {
+    /* Neon: #08CB00 (Green), #253900 (Dark Olive), #000000 (Black), #EEEEEE (White) */
+    --background: 0 0% 0%;
+    /* #000000 */
+    --foreground: 0 0% 93%;
+    /* #EEEEEE */
+    --card: 81 100% 11%;
+    /* #253900 */
+    --card-foreground: 118 100% 40%;
+    /* #08CB00 */
+    --popover: 81 100% 11%;
+    --popover-foreground: 118 100% 40%;
+    --primary: 118 100% 40%;
+    /* #08CB00 */
+    --primary-foreground: 0 0% 0%;
+    --secondary: 81 100% 11%;
+    /* #253900 */
+    --secondary-foreground: 118 100% 40%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 118 100% 40%;
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 118 100% 40%;
+    --input: 118 100% 40%;
+    --ring: 118 100% 40%;
+    --radius: 0.75rem;
+  }
+
+  .theme-tropical {
+    /* Tropical: #4ED7F1 (Cyan), #30C5D2 (Teal), #F0C000 (Golden Yellow) */
+    --background: 190 70% 97%;
+    /* Very pale cyan tint */
+    --foreground: 190 80% 15%;
+    /* Dark teal for text */
+    --card: 187 60% 94%;
+    /* Soft cyan tint for cards */
+    --card-foreground: 190 80% 15%;
+    --popover: 187 60% 94%;
+    --popover-foreground: 190 80% 15%;
+    --primary: 187 85% 63%;
+    /* #4ED7F1 (Cyan) */
+    --primary-foreground: 190 80% 15%;
+    --secondary: 46 100% 47%;
+    /* #F0C000 (Golden Yellow - clearly visible) */
+    --secondary-foreground: 0 0% 10%;
+    --muted: 190 50% 90%;
+    /* Soft cyan muted */
+    --muted-foreground: 190 40% 35%;
+    --accent: 183 70% 50%;
+    /* #30C5D2 (Stronger Teal) */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 183 60% 55%;
+    /* Teal border - more visible */
+    --input: 183 60% 55%;
+    --ring: 187 85% 63%;
+    --radius: 0.75rem;
+  }
+
   .dark {
-  --background: 0 0% 3.9%;
-  --foreground: 0 0% 98%;
-  --card: 0 0% 3.9%;
-  --card-foreground: 0 0% 98%;
-  --popover: 0 0% 3.9%;
-  --popover-foreground: 0 0% 98%;
-  --primary: 0 0% 98%;
-  --primary-foreground: 0 0% 9%;
-  --secondary: 0 0% 14.9%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 0 0% 14.9%;
-  --muted-foreground: 0 0% 63.9%;
-  --accent: 0 0% 14.9%;
-  --accent-foreground: 0 0% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 0 0% 14.9%;
-  --input: 0 0% 14.9%;
-  --ring: 0 0% 83.1%;
-  --chart-1: 220 70% 50%;
-  --chart-2: 160 60% 45%;
-  --chart-3: 30 80% 55%;
-  --chart-4: 280 65% 60%;
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
   }
 }
