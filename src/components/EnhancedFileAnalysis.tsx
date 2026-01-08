@@ -3,6 +3,7 @@ import {
     BarChart, Bar, LineChart, Line, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
+import { API_BASE_URL } from '../config';
 
 interface EnhancedFileAnalysisProps {
     file: any;
@@ -20,7 +21,7 @@ export default function EnhancedFileAnalysis({ file, repositoryId: _repositoryId
     const loadFileMetrics = async () => {
         try {
             // Fetch enhanced analysis from backend
-            const response = await fetch(`http://localhost:5000/repositories/files/${file.id}/enhanced-analysis`);
+            const response = await fetch(`${API_BASE_URL}/repositories/files/${file.id}/enhanced-analysis`);
             if (!response.ok) {
                 throw new Error('Failed to fetch file analysis');
             }

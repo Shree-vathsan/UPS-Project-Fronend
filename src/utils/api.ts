@@ -1,4 +1,6 @@
-const API_BASE = 'http://localhost:5000';
+import { API_BASE_URL } from '../config';
+
+const API_BASE = API_BASE_URL;
 
 async function handleResponse(res: Response) {
     if (!res.ok) {
@@ -164,6 +166,13 @@ export const api = {
             method: 'POST',
             headers,
             body: JSON.stringify({ url, userId })
+        });
+        return handleResponse(res);
+    },
+
+    async deleteRepository(repositoryId: string) {
+        const res = await fetch(`${API_BASE}/repositories/${repositoryId}`, {
+            method: 'DELETE'
         });
         return handleResponse(res);
     },
@@ -448,6 +457,13 @@ export const api = {
         return handleResponse(res);
     },
 
+    async clearRecentFiles(userId: string) {
+        const res = await fetch(`${API_BASE}/dashboard/${userId}/recent-files`, {
+            method: 'DELETE'
+        });
+        return handleResponse(res);
+    },
+
     async getBookmarks(userId: string) {
         const res = await fetch(`${API_BASE}/dashboard/${userId}/bookmarks`);
         return handleResponse(res);
@@ -469,6 +485,13 @@ export const api = {
 
     async removeBookmark(userId: string, fileId: string) {
         const res = await fetch(`${API_BASE}/dashboard/bookmark?userId=${userId}&fileId=${fileId}`, {
+            method: 'DELETE'
+        });
+        return handleResponse(res);
+    },
+
+    async clearBookmarks(userId: string) {
+        const res = await fetch(`${API_BASE}/dashboard/${userId}/bookmarks`, {
             method: 'DELETE'
         });
         return handleResponse(res);

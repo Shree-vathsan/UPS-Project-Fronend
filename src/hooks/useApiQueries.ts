@@ -46,8 +46,10 @@ export const queryKeys = {
     pendingReviews: (userId: string) => ['pendingReviews', userId] as const,
 };
 
+import { API_BASE_URL } from '../config';
+
 // API base URL
-const API_BASE = 'http://localhost:5000';
+const API_BASE = API_BASE_URL;
 
 // ==================== Repository Hooks ====================
 
@@ -431,7 +433,7 @@ export function useUploadFileDocument() {
 export function useUpdateStickyNote() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ noteId, userId, data, fileId }: { noteId: string; userId: string; data: { content?: string }; fileId?: string }) =>
+        mutationFn: ({ noteId, userId, data }: { noteId: string; userId: string; data: { content?: string }; fileId?: string }) =>
             api.updateStickyNote(noteId, userId, data),
         onSuccess: (_, variables) => {
             if (variables.fileId) {
@@ -444,7 +446,7 @@ export function useUpdateStickyNote() {
 export function useDeleteStickyNote() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ noteId, userId, fileId }: { noteId: string; userId: string; fileId?: string }) =>
+        mutationFn: ({ noteId, userId }: { noteId: string; userId: string; fileId?: string }) =>
             api.deleteStickyNote(noteId, userId),
         onSuccess: (_, variables) => {
             if (variables.fileId) {
@@ -477,7 +479,7 @@ export function usePostFileMessage() {
 export function useUpdateDiscussionMessage() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ messageId, userId, message, fileId }: { messageId: string; userId: string; message: string; fileId?: string }) =>
+        mutationFn: ({ messageId, userId, message }: { messageId: string; userId: string; message: string; fileId?: string }) =>
             api.updateDiscussionMessage(messageId, userId, message),
         onSuccess: (_, variables) => {
             if (variables.fileId) {
@@ -490,7 +492,7 @@ export function useUpdateDiscussionMessage() {
 export function useDeleteDiscussionMessage() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ messageId, userId, fileId }: { messageId: string; userId: string; fileId?: string }) =>
+        mutationFn: ({ messageId, userId }: { messageId: string; userId: string; fileId?: string }) =>
             api.deleteDiscussionMessage(messageId, userId),
         onSuccess: (_, variables) => {
             if (variables.fileId) {
@@ -523,7 +525,7 @@ export function useCreateFilePersonalNote() {
 export function useUpdatePersonalNote() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ noteId, userId, data, fileId }: { noteId: string; userId: string; data: { content: string; lineNumber?: number }; fileId?: string }) =>
+        mutationFn: ({ noteId, userId, data }: { noteId: string; userId: string; data: { content: string; lineNumber?: number }; fileId?: string }) =>
             api.updatePersonalNote(noteId, userId, data),
         onSuccess: (_, variables) => {
             if (variables.fileId) {
@@ -536,7 +538,7 @@ export function useUpdatePersonalNote() {
 export function useDeletePersonalNote() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ noteId, userId, fileId }: { noteId: string; userId: string; fileId?: string }) =>
+        mutationFn: ({ noteId, userId }: { noteId: string; userId: string; fileId?: string }) =>
             api.deletePersonalNote(noteId, userId),
         onSuccess: (_, variables) => {
             if (variables.fileId) {
@@ -565,6 +567,18 @@ export function useCreateRepoStickyNote() {
         },
     });
 }
+
+export function useUploadRepoDocument() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ userId, repositoryId, file, taggedFileIds }: { userId: string; repositoryId: string; file: File; taggedFileIds?: string[] }) =>
+            api.uploadRepoDocument(userId, repositoryId, file, taggedFileIds),
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['repoStickyNotes', variables.repositoryId] });
+        },
+    });
+}
+
 
 // Repository-Level Discussion
 export function useRepoDiscussion(repositoryId: string | undefined) {
@@ -737,6 +751,21 @@ export function useRecentFiles(userId: string | undefined) {
     });
 }
 
+export function useClearRecentFiles() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ userId }: { userId: string }) =>
+            api.clearRecentFiles(userId),
+        onSuccess: (_, { userId }) => {
+            // Immediately set the data to empty array for instant UI update
+            queryClient.setQueryData(queryKeys.recentFiles(userId), []);
+            // Also invalidate to ensure fresh data on next fetch
+            queryClient.invalidateQueries({ queryKey: queryKeys.recentFiles(userId) });
+            queryClient.invalidateQueries({ queryKey: queryKeys.dashboardData(userId) });
+        },
+    });
+}
+
 export function useBookmarks(userId: string | undefined) {
     return useQuery({
         queryKey: queryKeys.bookmarks(userId || ''),
@@ -809,10 +838,30 @@ export function useRemoveBookmark() {
     });
 }
 
+export function useClearBookmarks() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ userId }: { userId: string }) =>
+            api.clearBookmarks(userId),
+        onSuccess: (_, { userId }) => {
+            // Immediately set the data to empty array for instant UI update
+            queryClient.setQueryData(queryKeys.bookmarks(userId), []);
+            // Also invalidate to ensure fresh data on next fetch
+            queryClient.invalidateQueries({ queryKey: queryKeys.bookmarks(userId) });
+            queryClient.invalidateQueries({ queryKey: queryKeys.dashboardData(userId) });
+        },
+    });
+}
+
 export function usePendingReviews(userId: string | undefined, limit: number = 10) {
     return useQuery({
         queryKey: queryKeys.pendingReviews(userId || ''),
-        queryFn: () => api.getPendingReviews(userId!, limit),
+        queryFn: async () => {
+            console.log('[PendingReviews] Fetching for userId:', userId);
+            const result = await api.getPendingReviews(userId!, limit);
+            console.log('[PendingReviews] API Response:', result);
+            return result;
+        },
         enabled: !!userId,
         staleTime: 1000 * 60 * 3, // 3 minutes
     });

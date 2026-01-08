@@ -21,7 +21,7 @@ import { useFile, useFileAnalysis, useFileContent, useFileCommits, useTrackFileV
 export default function FileView() {
     const { fileId } = useParams<{ fileId: string }>();
     const [searchParams] = useSearchParams();
-    const { theme } = useTheme();
+    const { resolvedTheme } = useTheme();
 
     // Get tab from URL params (default to 'code')
     const tabParam = searchParams.get('tab') as 'code' | 'analysis' | 'notes' | null;
@@ -70,8 +70,8 @@ export default function FileView() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId, fileId]);
 
-    // Determine if current theme is light (includes black-beige which has light background)
-    const isLightTheme = theme === 'light' || theme === 'light-pallete' || theme === 'black-beige';
+    // Determine if current theme is light
+    const isLightTheme = resolvedTheme === 'light';
 
     const getLanguageFromPath = (filePath: string): string => {
         const extension = filePath.split('.').pop()?.toLowerCase();
@@ -161,6 +161,7 @@ export default function FileView() {
                                 <Button
                                     variant="ghost"
                                     size="icon"
+                                    className={resolvedTheme === 'night' ? 'hover:bg-primary/40' : resolvedTheme === 'dark' ? 'hover:bg-blue-500/30' : resolvedTheme === 'light' ? 'hover:bg-blue-100 hover:text-blue-700' : ''}
                                     onClick={() => {
                                         if (isBookmarked) {
                                             removeBookmark.mutate({ userId, fileId: fileId! });
@@ -272,7 +273,7 @@ export default function FileView() {
                                     disabled={!canGoPrevious}
                                     variant="outline"
                                     size="sm"
-                                    className="gap-2"
+                                    className={`gap-2 ${resolvedTheme === 'night' ? 'hover:bg-primary/40' : resolvedTheme === 'dark' ? 'hover:bg-blue-500/30' : resolvedTheme === 'light' ? 'hover:bg-blue-100 hover:text-blue-700' : ''}`}
                                 >
                                     <ChevronLeft className="h-4 w-4" />
                                     Previous Commit
@@ -282,7 +283,7 @@ export default function FileView() {
                                     disabled={!canGoNext}
                                     variant="outline"
                                     size="sm"
-                                    className="gap-2"
+                                    className={`gap-2 ${resolvedTheme === 'night' ? 'hover:bg-primary/40' : resolvedTheme === 'dark' ? 'hover:bg-blue-500/30' : resolvedTheme === 'light' ? 'hover:bg-blue-100 hover:text-blue-700' : ''}`}
                                 >
                                     Next Commit
                                     <ChevronRight className="h-4 w-4" />

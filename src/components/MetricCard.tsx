@@ -1,10 +1,10 @@
 import { ReactNode } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
+    HoverCard,
+    HoverCardContent,
+    HoverCardTrigger,
+} from '@/components/ui/hover-card';
 import { Info } from 'lucide-react';
 
 interface MetricCardProps {
@@ -36,24 +36,24 @@ export default function MetricCard({
             </div>
 
             <CardContent className="p-6 relative">
-                {/* Tooltip */}
+                {/* HoverCard */}
                 {tooltip && (
                     <div className="absolute top-3 right-3">
-                        <Tooltip>
-                            <TooltipTrigger asChild>
+                        <HoverCard openDelay={100} closeDelay={100}>
+                            <HoverCardTrigger asChild>
                                 <button className="text-muted-foreground hover:text-foreground transition-colors">
                                     <Info className="h-4 w-4" />
                                 </button>
-                            </TooltipTrigger>
-                            <TooltipContent side="left" className="max-w-xs">
+                            </HoverCardTrigger>
+                            <HoverCardContent side="left" className="max-w-xs">
                                 <p className="text-sm">{tooltip}</p>
                                 {formula && (
                                     <code className="block mt-2 text-xs bg-muted p-2 rounded">
                                         {formula}
                                     </code>
                                 )}
-                            </TooltipContent>
-                        </Tooltip>
+                            </HoverCardContent>
+                        </HoverCard>
                     </div>
                 )}
 

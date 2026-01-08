@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react"
 
-type Theme = "black-beige" | "light" | "dark" | "night" | "light-pallete" | "system"
+type Theme = "light" | "dark" | "night" | "neon" | "amethyst" | "oceanic" | "pastel" | "twilight" | "tropical" | "system"
+type ResolvedTheme = "light" | "dark" | "night" | "neon" | "amethyst" | "oceanic" | "pastel" | "twilight" | "tropical"
 
 type ThemeProviderProps = {
     children: React.ReactNode
@@ -10,11 +11,17 @@ type ThemeProviderProps = {
 
 type ThemeProviderState = {
     theme: Theme
+    resolvedTheme: ResolvedTheme
     setTheme: (theme: Theme) => void
+}
+
+const getSystemTheme = (): "light" | "dark" => {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
 }
 
 const initialState: ThemeProviderState = {
     theme: "system",
+    resolvedTheme: "dark",
     setTheme: () => null,
 }
 
@@ -22,42 +29,58 @@ const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 
 export function ThemeProvider({
     children,
-    defaultTheme = "black-beige",
+    defaultTheme = "night",
     storageKey = "codefamily-ui-theme",
     ...props
 }: ThemeProviderProps) {
-    const [theme, setTheme] = useState<Theme>(
-        () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
-    )
+    const [theme, setTheme] = useState<Theme>(() => {
+        const saved = localStorage.getItem(storageKey);
+        return (saved as Theme) || defaultTheme;
+    })
+
+    const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => {
+        if (theme === "system") {
+            return getSystemTheme()
+        }
+        return theme as ResolvedTheme
+    })
 
     useEffect(() => {
         const root = window.document.documentElement
 
-        root.classList.remove("theme-light", "theme-dark", "theme-night", "theme-light-pallete", "black-beige")
+        root.classList.remove("theme-light", "theme-dark", "theme-night", "theme-neon", "theme-amethyst", "theme-oceanic", "theme-pastel", "theme-twilight", "theme-tropical")
 
         if (theme === "system") {
-            const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
-                ? "dark"
-                : "light"
-
+            const systemTheme = getSystemTheme()
+            setResolvedTheme(systemTheme)
             root.classList.add(`theme-${systemTheme}`)
             return
         }
 
-        if (theme === "light") {
-            root.classList.add("theme-light")
-        } else if (theme === "dark") {
-            root.classList.add("theme-dark")
-        } else if (theme === "night") {
-            root.classList.add("theme-night")
-        } else if (theme === "light-pallete") {
-            root.classList.add("theme-light-pallete")
+        setResolvedTheme(theme as ResolvedTheme)
+        root.classList.add(`theme-${theme}`)
+    }, [theme])
+
+    // Listen for system theme changes when in system mode
+    useEffect(() => {
+        if (theme !== "system") return
+
+        const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
+        const handleChange = (e: MediaQueryListEvent) => {
+            const newTheme = e.matches ? "dark" : "light"
+            setResolvedTheme(newTheme)
+            const root = window.document.documentElement
+            root.classList.remove("theme-light", "theme-dark", "theme-night", "theme-neon", "theme-amethyst", "theme-oceanic", "theme-pastel", "theme-twilight", "theme-tropical")
+            root.classList.add(`theme-${newTheme}`)
         }
-        // black-beige is the default in CSS, so no class needed
+
+        mediaQuery.addEventListener("change", handleChange)
+        return () => mediaQuery.removeEventListener("change", handleChange)
     }, [theme])
 
     const value = {
         theme,
+        resolvedTheme,
         setTheme: (theme: Theme) => {
             localStorage.setItem(storageKey, theme)
             setTheme(theme)

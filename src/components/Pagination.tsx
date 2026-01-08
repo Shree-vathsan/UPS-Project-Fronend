@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { useTheme } from '@/components/theme-provider';
 
 interface PaginationProps {
     currentPage: number;
@@ -8,6 +9,14 @@ interface PaginationProps {
     className?: string;
     hasNextPage?: boolean;
 }
+
+// Helper function for theme-based hover
+const getHoverClass = (resolvedTheme: string) => {
+    if (resolvedTheme === 'night') return 'hover:bg-primary/40';
+    if (resolvedTheme === 'dark') return 'hover:bg-blue-500/30';
+    if (resolvedTheme === 'light') return 'hover:bg-blue-100 hover:text-blue-700';
+    return '';
+};
 
 export default function Pagination({
     currentPage,
@@ -20,6 +29,7 @@ export default function Pagination({
     // If totalPages is defined and <= 1, hide it strictly.
     // if (totalPages !== undefined && totalPages <= 1) return null;
 
+    const { resolvedTheme } = useTheme();
     const isNextDisabled = totalPages ? currentPage >= totalPages : !hasNextPage;
 
     return (
@@ -29,6 +39,7 @@ export default function Pagination({
                 disabled={currentPage === 1 || disabled}
                 variant="outline"
                 size="sm"
+                className={getHoverClass(resolvedTheme)}
             >
                 Previous
             </Button>
@@ -40,6 +51,7 @@ export default function Pagination({
                 disabled={isNextDisabled || disabled}
                 variant="outline"
                 size="sm"
+                className={getHoverClass(resolvedTheme)}
             >
                 Next
             </Button>

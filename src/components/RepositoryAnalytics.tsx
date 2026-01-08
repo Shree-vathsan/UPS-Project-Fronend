@@ -182,9 +182,9 @@ export default function RepositoryAnalytics({ repositoryId, branchName }: Reposi
                                 cy="60"
                                 r="50"
                                 fill="none"
-                                stroke={metrics?.codeHealth > 70 ? '#3fb950' : metrics?.codeHealth > 40 ? '#d29922' : '#f85149'}
+                                stroke={(metrics?.codeHealth ?? 0) > 70 ? '#3fb950' : (metrics?.codeHealth ?? 0) > 40 ? '#d29922' : '#f85149'}
                                 strokeWidth="10"
-                                strokeDasharray={`${(metrics?.codeHealth / 100) * 314} 314`}
+                                strokeDasharray={`${((metrics?.codeHealth ?? 0) / 100) * 314} 314`}
                                 strokeLinecap="round"
                             />
                         </svg>
@@ -203,9 +203,9 @@ export default function RepositoryAnalytics({ repositoryId, branchName }: Reposi
                     <div style={{ flex: 1 }}>
                         <p className="text-muted-foreground">
                             Based on commit frequency, code coverage, and repository activity.
-                            {metrics?.codeHealth > 70 && ' Excellent health!'}
-                            {metrics?.codeHealth > 40 && metrics?.codeHealth <= 70 && ' Good health.'}
-                            {metrics?.codeHealth <= 40 && ' Needs attention.'}
+                            {(metrics?.codeHealth ?? 0) > 70 && ' Excellent health!'}
+                            {(metrics?.codeHealth ?? 0) > 40 && (metrics?.codeHealth ?? 0) <= 70 && ' Good health.'}
+                            {(metrics?.codeHealth ?? 0) <= 40 && ' Needs attention.'}
                         </p>
                         <div style={{ marginTop: '12px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                             <div style={{ padding: '4px 12px', background: '#3fb95020', borderRadius: '12px', fontSize: '11px', color: '#3fb950' }}>
@@ -282,7 +282,7 @@ export default function RepositoryAnalytics({ repositoryId, branchName }: Reposi
                                 fill="#8884d8"
                                 dataKey="value"
                             >
-                                {fileTypeData.map((_entry, index) => (
+                                {fileTypeData.map((_entry: any, index: number) => (
                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                 ))}
                             </Pie>
@@ -332,8 +332,8 @@ export default function RepositoryAnalytics({ repositoryId, branchName }: Reposi
                     <h3 className="text-xl font-heading font-bold">Detailed Breakdown</h3>
                 </div>
                 <div style={{ display: 'grid', gap: '8px', marginTop: '16px' }}>
-                    {fileTypeData.map((type, index) => {
-                        const total = fileTypeData.reduce((sum, t) => sum + t.value, 0);
+                    {fileTypeData.map((type: any, index: number) => {
+                        const total = fileTypeData.reduce((sum: number, t: any) => sum + t.value, 0);
                         const percentage = ((type.value / total) * 100).toFixed(1);
                         return (
                             <div key={index} className="flex items-center gap-3 p-3 bg-muted/30 border rounded-lg">

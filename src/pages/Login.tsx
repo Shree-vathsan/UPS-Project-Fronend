@@ -1,13 +1,21 @@
 import { useState } from 'react';
-import { Github, Code, AlertTriangle, CheckCircle, Files, Download } from 'lucide-react';
+import { Github, Code, AlertTriangle, Files } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { api } from '../utils/api';
 import ThemeSelector from '../components/ThemeSelector';
+import SnowfallToggle from '../components/SnowfallToggle';
+import { useTheme } from '../components/theme-provider';
 
-export default function Login() {
+interface LoginProps {
+    snowfallEnabled?: boolean;
+    toggleSnowfall?: () => void;
+}
+
+export default function Login({ snowfallEnabled = false, toggleSnowfall = () => { } }: LoginProps) {
     const [error, setError] = useState<string>('');
+    const { resolvedTheme } = useTheme();
 
     const handleLogin = async () => {
         try {
@@ -31,11 +39,12 @@ export default function Login() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-background">
-            {/* Theme Selector - Top Right */}
-            {/* <div className="absolute top-4 right-4 z-10">
+        <div className="h-screen overflow-hidden flex items-center justify-center bg-background relative">
+            {/* Theme Selector & Snowfall Toggle - Top Right */}
+            <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
+                <SnowfallToggle isActive={snowfallEnabled} onToggle={toggleSnowfall} />
                 <ThemeSelector />
-            </div> */}
+            </div>
 
             <div className="w-full -mt-16 max-w-md px-4 animate-fade-in">
                 {/* Logo/Title */}
@@ -69,7 +78,7 @@ export default function Login() {
                                         <strong className="block mb-2">Troubleshooting:</strong>
                                         <ul className="list-disc list-inside space-y-1">
                                             <li>Make sure backend is running: <code>dotnet run</code></li>
-                                            <li>Backend should be at: http://localhost:5000</li>
+                                            <li>Backend should be at: https://codefamily-backend-854884449726.us-central1.run.app</li>
                                             <li>Supabase database must be configured</li>
                                         </ul>
                                     </div>
@@ -90,7 +99,8 @@ export default function Login() {
                         </CardDescription>
                         <Button
                             onClick={handleOpenUserManual}
-                            className="w-full gap-2 bg-black text-white hover:bg-gray-800"
+                            variant="outline"
+                            className={`w-full gap-2 ${resolvedTheme === 'night' ? 'hover:bg-primary/40' : resolvedTheme === 'dark' ? 'hover:bg-blue-500/30' : resolvedTheme === 'light' ? 'hover:bg-blue-100 hover:text-blue-700' : ''}`}
                             size="lg"
                         >
                             <Files className="h-5 w-5" />

@@ -33,7 +33,7 @@ export default function PendingReviewsWidget({ userId }: PendingReviewsWidgetPro
                 <CardHeader className="pb-3">
                     <CardTitle className="flex items-center gap-2 text-sm font-medium">
                         <Bell className="h-4 w-4 text-red-500" />
-                        Pending Reviews
+                        Pending PR Reviews
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
@@ -54,7 +54,7 @@ export default function PendingReviewsWidget({ userId }: PendingReviewsWidgetPro
             <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm font-medium">
                     <Bell className="h-4 w-4 text-red-500" />
-                    Pending Reviews
+                    Pending PR Reviews
                 </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">

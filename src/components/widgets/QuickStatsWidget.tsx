@@ -17,7 +17,7 @@ interface Stats {
 
 export default function QuickStatsWidget({ userId }: QuickStatsWidgetProps) {
     const { data: stats, isLoading } = useQuickStats(userId);
-    const { data: pendingReviews, isLoading: pendingLoading } = usePendingReviews(userId);
+    const { data: pendingReviews } = usePendingReviews(userId);
 
     if (isLoading) {
         return (

@@ -4,11 +4,36 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" type="image/svg+xml" href="public/favicon.svg" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <title>ForeSite</title>
 </head>
 
 <body>
+  <script>
+    // Synchronously apply saved theme to prevent flash of unstyled content (FOUC)
+    (function () {
+      var storageKey = 'codefamily-ui-theme';
+      var savedTheme = localStorage.getItem(storageKey);
+      // Handle legacy themes - migrate to night
+      if (savedTheme === 'black-beige' || savedTheme === 'light-pallete') {
+        savedTheme = 'night';
+        localStorage.setItem(storageKey, 'night');
+      }
+      if (savedTheme === 'light') {
+        document.documentElement.classList.add('theme-light');
+      } else if (savedTheme === 'dark') {
+        document.documentElement.classList.add('theme-dark');
+      } else if (savedTheme === 'night') {
+        document.documentElement.classList.add('theme-night');
+      } else if (savedTheme === 'system') {
+        var systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.classList.add('theme-' + systemTheme);
+      } else {
+        // Default to night if no saved theme
+        document.documentElement.classList.add('theme-night');
+      }
+    })();
+  </script>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>

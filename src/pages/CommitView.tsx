@@ -184,30 +184,38 @@ export default function CommitView() {
                                         </div>
                                     </CardHeader>
 
-                                    {expandedFiles.has(file.filename) && file.patch && (
-                                        <CardContent className="pt-0">
-                                            <div className="bg-muted/30 rounded-md overflow-hidden border">
-                                                {file.patch.split('\n').map((line: string, lineIdx: number) => {
-                                                    let className = 'px-4 py-0.5 font-mono text-xs';
-                                                    if (line.startsWith('+') && !line.startsWith('+++')) {
-                                                        className += ' bg-green-500/10 text-green-600 dark:text-green-400 border-l-2 border-green-500';
-                                                    } else if (line.startsWith('-') && !line.startsWith('---')) {
-                                                        className += ' bg-red-500/10 text-red-600 dark:text-red-400 border-l-2 border-red-500';
-                                                    } else if (line.startsWith('@@')) {
-                                                        className += ' bg-blue-500/10 text-primary border-l-2 border-primary';
-                                                    } else if (line.startsWith('+++') || line.startsWith('---')) {
-                                                        className += ' text-muted-foreground';
-                                                    }
+                                    {/* Smooth transition for file expansion */}
+                                    <div
+                                        className={`grid transition-all duration-300 ${expandedFiles.has(file.filename) && file.patch
+                                                ? 'grid-rows-[1fr] opacity-100'
+                                                : 'grid-rows-[0fr] opacity-0'
+                                            }`}
+                                    >
+                                        <div className="overflow-hidden">
+                                            <CardContent className="pt-0">
+                                                <div className="bg-muted/30 rounded-md overflow-hidden border">
+                                                    {file.patch?.split('\n').map((line: string, lineIdx: number) => {
+                                                        let className = 'px-4 py-0.5 font-mono text-xs';
+                                                        if (line.startsWith('+') && !line.startsWith('+++')) {
+                                                            className += ' bg-green-500/10 text-green-600 dark:text-green-400 border-l-2 border-green-500';
+                                                        } else if (line.startsWith('-') && !line.startsWith('---')) {
+                                                            className += ' bg-red-500/10 text-red-600 dark:text-red-400 border-l-2 border-red-500';
+                                                        } else if (line.startsWith('@@')) {
+                                                            className += ' bg-blue-500/10 text-primary border-l-2 border-primary';
+                                                        } else if (line.startsWith('+++') || line.startsWith('---')) {
+                                                            className += ' text-muted-foreground';
+                                                        }
 
-                                                    return (
-                                                        <div key={lineIdx} className={className}>
-                                                            {line || ' '}
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </CardContent>
-                                    )}
+                                                        return (
+                                                            <div key={lineIdx} className={className}>
+                                                                {line || ' '}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </CardContent>
+                                        </div>
+                                    </div>
                                 </Card>
                             ))}
                     </div>

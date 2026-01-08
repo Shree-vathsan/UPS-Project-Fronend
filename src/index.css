@@ -10,36 +10,41 @@
 
 @layer base {
   :root {
-    /* Theme: Black & Beige - Soft Charcoal on Warm Orange-Beige */
-    --background: 28 30 94;
-    /* Warm orange-beige #F6EDE0 */
-    --foreground: 25 18 18;
-    /* Warm charcoal #312720 */
-    --card: 28 28 97;
-    /* Warm peachy white #FCF8F2 */
-    --card-foreground: 25 18 18;
-    --popover: 28 28 97;
-    --popover-foreground: 25 18 18;
-    --primary: 25 15 22;
-    /* Soft warm charcoal #3E3328 */
-    --primary-foreground: 28 30 94;
-    --secondary: 26 30 84;
-    /* Orange-tinted beige #E4D4C0 */
-    --secondary-foreground: 25 18 18;
-    --muted: 26 28 88;
-    /* Soft orange-beige #EAE0D2 */
-    --muted-foreground: 25 12 45;
-    /* Warm gray #7A6F64 */
-    --accent: 25 15 25;
-    /* Soft dark accent #443929 */
-    --accent-foreground: 28 30 94;
+    /* Default: Night theme (prevents FOUC before JS loads) */
+    --background: 30 23 7;
+    /* pale-oak-950 #16130e */
+    --foreground: 40 33 95;
+    /* pale-oak-50 #f5f3ef */
+    --card: 31 27 10;
+    /* pale-oak-900 #1f1b14 */
+    --card-foreground: 40 33 95;
+    --popover: 31 27 10;
+    --popover-foreground: 40 33 95;
+    --primary: 27 62 50;
+    /* sandy-clay-500 #cf8030 */
+    --primary-foreground: 40 33 95;
+    --secondary: 27 57 50;
+    /* desert-sand-500 #c97836 */
+    --secondary-foreground: 40 33 95;
+    --muted: 27 47 21;
+    /* desert-sand-800 #513015 */
+    --muted-foreground: 40 26 76;
+    /* pale-oak-200 #d7cfc1 */
+    --accent: 154 14 50;
+    /* muted-teal-500 #6e9182 */
+    --accent-foreground: 40 33 95;
     --destructive: 0 70 50;
-    --destructive-foreground: 28 30 94;
-    --border: 26 25 76;
-    /* Warm orange border #D2C3AC */
-    --input: 26 25 76;
-    --ring: 25 15 22;
+    --destructive-foreground: 40 33 95;
+    --border: 30 29 17;
+    /* pale-oak-800 #3e3628 */
+    --input: 30 29 17;
+    --ring: 27 62 50;
     --radius: 0.75rem;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
   }
 
   .theme-light {
@@ -48,10 +53,10 @@
     /* Pure white */
     --foreground: 222 47 11;
     /* Deep slate #0F172A */
-    --card: 0 0 99;
-    /* Off white #FCFCFC */
+    --card: 214 40% 96%;
+    /* Soft blue tint #F0F4F8 */
     --card-foreground: 222 47 11;
-    --popover: 0 0 100;
+    --popover: 214 40% 96%;
     --popover-foreground: 222 47 11;
     --primary: 221 83 53;
     /* Modern blue #2563EB */
@@ -143,39 +148,224 @@
     --radius: 0.75rem;
   }
 
-  .theme-light-pallete {
-    /* Theme: Light Palette - Earthy & Natural - Using EXACT hex codes */
-    --background: 46 61 92;
-    /* #F7F1DE - Warm cream background */
-    --foreground: 27 42 20;
-    /* Derived from #B87C4C for dark text */
-    --card: 0 0 100;
-    /* Pure white for cards */
-    --card-foreground: 27 42 20;
-    --popover: 0 0 100;
-    --popover-foreground: 27 42 20;
-    --primary: 27 42 51;
-    /* #B87C4C - Warm brown */
-    --primary-foreground: 46 61 92;
-    --secondary: 30 34 64;
-    /* #C4A484 - Light tan */
-    --secondary-foreground: 27 42 20;
-    --muted: 46 61 88;
-    /* Lighter shade of cream */
-    --muted-foreground: 27 42 40;
-    /* Medium brown for muted text */
-    --accent: 105 17 69;
-    /* #A8BBA3 - Sage green */
-    --accent-foreground: 27 42 20;
-    --destructive: 0 70 50;
-    /* Warm red */
-    --destructive-foreground: 0 0 100;
-    --border: 30 34 64;
-    /* #C4A484 - Light tan for visible borders */
-    --input: 30 34 64;
-    --ring: 27 42 51;
-    /* #B87C4C */
+
+
+
+
+
+
+
+
+  .theme-amethyst {
+    /* Amethyst: #000000 (Black), #9929EA (Purple), #CC66DA (Light Purple), #FAEB92 (Pale Yellow) */
+    --background: 0 0% 0%;
+    /* #000000 */
+    --foreground: 51 91% 78%;
+    /* #FAEB92 (Pale Yellow for text) */
+    --card: 275 82% 5%;
+    /* Very dark purple/black for card */
+    --card-foreground: 51 91% 78%;
+    --popover: 275 82% 5%;
+    --popover-foreground: 51 91% 78%;
+    --primary: 275 82% 54%;
+    /* #9929EA (Purple) */
+    --primary-foreground: 51 91% 78%;
+    --secondary: 293 61% 63%;
+    /* #CC66DA (Light Purple) */
+    --secondary-foreground: 0 0% 0%;
+    --muted: 275 30% 20%;
+    --muted-foreground: 293 40% 60%;
+    --accent: 51 91% 78%;
+    /* #FAEB92 */
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 275 82% 54%;
+    /* Purple border */
+    --input: 275 82% 54%;
+    --ring: 51 91% 78%;
     --radius: 0.75rem;
+  }
+
+  .theme-oceanic {
+    /* Oceanic: #001F3D (Dark Blue), #ED985F (Orange), #F7B980 (Light Orange), #E6E6E6 (Light Grey) */
+    --background: 210 100% 12%;
+    /* #001F3D */
+    --foreground: 0 0% 90%;
+    /* #E6E6E6 (Light Grey) */
+    --card: 210 50% 10%;
+    /* Darker blue */
+    --card-foreground: 0 0% 90%;
+    --popover: 210 50% 10%;
+    --popover-foreground: 0 0% 90%;
+    --primary: 24 80% 65%;
+    /* #ED985F (Orange) */
+    --primary-foreground: 210 100% 12%;
+    --secondary: 29 88% 74%;
+    /* #F7B980 (Light Orange) */
+    --secondary-foreground: 210 100% 12%;
+    --muted: 210 40% 20%;
+    --muted-foreground: 210 20% 60%;
+    --accent: 29 88% 74%;
+    --accent-foreground: 210 100% 12%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 24 80% 65%;
+    /* Orange border */
+    --input: 24 80% 65%;
+    --ring: 29 88% 74%;
+    --radius: 0.75rem;
+  }
+
+  .theme-pastel {
+    /* Pastel: #D6A99D (Pink), #FBF3D5 (Pale Yellow), #D6DAC8 (Sage), #9CAFAA (Teal) */
+    --background: 48 62 95%;
+    /* #FBF3D5 (Pale Yellow) */
+    --foreground: 163 22 26%;
+    /* #9CAFAA darker for text */
+    --card: 87 30% 92%;
+    /* Soft sage tint */
+    --card-foreground: 163 22 26%;
+    --popover: 87 30% 92%;
+    --popover-foreground: 163 22 26%;
+    --primary: 11 40 73%;
+    /* #D6A99D (Pink) */
+    --primary-foreground: 163 22 26%;
+    --secondary: 163 22 68%;
+    /* #9CAFAA (Teal) */
+    --secondary-foreground: 0 0 100%;
+    --muted: 87 36 85%;
+    --muted-foreground: 163 22 40%;
+    --accent: 87 36 82%;
+    /* #D6DAC8 (Sage) */
+    --accent-foreground: 163 22 26%;
+    --destructive: 0 70 50%;
+    --destructive-foreground: 0 0 100%;
+    --border: 163 22 68%;
+    /* Teal border */
+    --input: 163 22 68%;
+    --ring: 11 40 73%;
+    --radius: 0.75rem;
+  }
+
+  .theme-twilight {
+    /* Twilight: #4B5D67 (Slate), #322F3D (Dark Purple), #59405C (Purple), #87556F (Mauve) */
+    --background: 251 14 20%;
+    /* #322F3D (Dark Purple) */
+    --foreground: 195 18 85%;
+    /* Light slate for text */
+    --card: 251 14 15%;
+    /* Darker purple */
+    --card-foreground: 195 18 85%;
+    --popover: 251 14 15%;
+    --popover-foreground: 195 18 85%;
+    --primary: 330 22 50%;
+    /* #87556F (Mauve) */
+    --primary-foreground: 195 18 85%;
+    --secondary: 291 18 30%;
+    /* #59405C (Purple) */
+    --secondary-foreground: 195 18 85%;
+    --muted: 195 18 34%;
+    --muted-foreground: 330 22 70%;
+    --accent: 195 18 40%;
+    /* #4B5D67 (Slate) */
+    --accent-foreground: 195 18 85%;
+    --destructive: 0 70 50%;
+    --destructive-foreground: 0 0 100%;
+    --border: 291 18 30%;
+    /* Purple border */
+    --input: 291 18 30%;
+    --ring: 330 22 50%;
+    --radius: 0.75rem;
+  }
+
+  .theme-neon {
+    /* Neon: #08CB00 (Green), #253900 (Dark Olive), #000000 (Black), #EEEEEE (White) */
+    --background: 0 0% 0%;
+    /* #000000 */
+    --foreground: 0 0% 93%;
+    /* #EEEEEE */
+    --card: 81 100% 11%;
+    /* #253900 */
+    --card-foreground: 118 100% 40%;
+    /* #08CB00 */
+    --popover: 81 100% 11%;
+    --popover-foreground: 118 100% 40%;
+    --primary: 118 100% 40%;
+    /* #08CB00 */
+    --primary-foreground: 0 0% 0%;
+    --secondary: 81 100% 11%;
+    /* #253900 */
+    --secondary-foreground: 118 100% 40%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 118 100% 40%;
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 118 100% 40%;
+    --input: 118 100% 40%;
+    --ring: 118 100% 40%;
+    --radius: 0.75rem;
+  }
+
+  .theme-tropical {
+    /* Tropical: #4ED7F1 (Cyan), #30C5D2 (Teal), #F0C000 (Golden Yellow) */
+    --background: 190 70% 97%;
+    /* Very pale cyan tint */
+    --foreground: 190 80% 15%;
+    /* Dark teal for text */
+    --card: 187 60% 94%;
+    /* Soft cyan tint for cards */
+    --card-foreground: 190 80% 15%;
+    --popover: 187 60% 94%;
+    --popover-foreground: 190 80% 15%;
+    --primary: 187 85% 63%;
+    /* #4ED7F1 (Cyan) */
+    --primary-foreground: 190 80% 15%;
+    --secondary: 46 100% 47%;
+    /* #F0C000 (Golden Yellow - clearly visible) */
+    --secondary-foreground: 0 0% 10%;
+    --muted: 190 50% 90%;
+    /* Soft cyan muted */
+    --muted-foreground: 190 40% 35%;
+    --accent: 183 70% 50%;
+    /* #30C5D2 (Stronger Teal) */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 183 60% 55%;
+    /* Teal border - more visible */
+    --input: 183 60% 55%;
+    --ring: 187 85% 63%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
   }
 }
 
@@ -514,4 +704,23 @@
 button:focus-visible,
 a:focus-visible {
   @apply transition-smooth;
+}
+
+/* Dropdown menu items handle their own focus styles via background color, remove the outline ring */
+[data-radix-collection-item]:focus-visible,
+[role="menuitem"]:focus-visible,
+[role="option"]:focus-visible {
+  outline: none;
+}
+
+
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
 }

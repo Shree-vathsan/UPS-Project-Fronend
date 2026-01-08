@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { GitBranch, FileIcon, X } from 'lucide-react';
+import { useTheme } from '@/components/theme-provider';
 
 interface BranchSelectorModalProps {
     open: boolean;
@@ -20,6 +21,8 @@ export function BranchSelectorModal({
 }: BranchSelectorModalProps) {
     if (!open) return null;
 
+    const { resolvedTheme } = useTheme();
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
             <div
@@ -32,8 +35,7 @@ export function BranchSelectorModal({
                         <div>
                             <div className="flex items-center gap-2 mb-2">
                                 <FileIcon className="h-5 w-5 text-green-500" />
-                                <h2 className="text-lg font-semibold">Select Branch for {fileName}</h2
-                                >
+                                <h2 className="text-lg font-semibold">Select Branch for {fileName}</h2>
                             </div>
                             <p className="text-sm text-muted-foreground">
                                 This file is not available in the default branch. Select which branch to view:
@@ -65,7 +67,7 @@ export function BranchSelectorModal({
                                         onClose();
                                     }}
                                     variant={isDefault ? "default" : "outline"}
-                                    className="w-full justify-start gap-2"
+                                    className={`w-full justify-start gap-2 ${!isDefault && (resolvedTheme === 'night' ? 'hover:bg-primary/40' : resolvedTheme === 'dark' ? 'hover:bg-blue-500/30' : resolvedTheme === 'light' ? 'hover:bg-blue-100 hover:text-blue-700' : '')}`}
                                 >
                                     <GitBranch className="h-4 w-4" />
                                     <span>{branch}</span>

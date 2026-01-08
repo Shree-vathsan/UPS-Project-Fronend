@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, BarChart, Plus, Loader, RefreshCw, AlertTriangle, Search, Info, ChevronDown, ChevronUp, Home } from 'lucide-react';
+import { Package, BarChart, Plus, Loader, RefreshCw, AlertTriangle, Search, Info, ChevronDown, ChevronUp, Home, Github, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { RecentFilesWidget, BookmarksWidget, TeamActivityWidget, QuickStatsWidget, PendingReviewsWidget } from '../components/widgets';
 import { api } from '../utils/api';
@@ -10,9 +10,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import Pagination from '../components/Pagination';
 import { useAllRepositories, useAnalyzedRepositories, useInvalidateRepositories } from '../hooks/useApiQueries';
+import { useTheme } from '@/components/theme-provider';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface DashboardProps {
     user: any;
@@ -21,10 +34,11 @@ interface DashboardProps {
 
 type TabType = 'home' | 'your' | 'analyzed' | 'add';
 type FilterType = 'your' | 'others' | 'all';
-type RepoFilterType = 'all' | 'public' | 'private' | 'contributor';
+type RepoFilterType = 'all' | 'public' | 'private' | 'contributor' | 'notanalyzed';
 
 export default function Dashboard({ user, token }: DashboardProps) {
     const navigate = useNavigate();
+    const { resolvedTheme } = useTheme();
 
     // Tab state
     const [activeTab, setActiveTab] = useState<TabType>('home');
@@ -33,6 +47,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
     const {
         data: reposData,
         isLoading: loading,
+        isFetching: isRefreshingRepos,
         error: reposError,
         refetch: refetchRepos
     } = useAllRepositories(token, user?.id);
@@ -74,6 +89,12 @@ export default function Dashboard({ user, token }: DashboardProps) {
     // Quick guide visibility
     const [showQuickGuide, setShowQuickGuide] = useState(false);
 
+    // Analyze confirmation dialog state
+    const [analyzeConfirmRepo, setAnalyzeConfirmRepo] = useState<{ login: string; name: string } | null>(null);
+
+    // Delete confirmation dialog state
+    const [deleteConfirmRepo, setDeleteConfirmRepo] = useState<{ id: string; name: string } | null>(null);
+
     // Add repository tab state
     const [repoUrl, setRepoUrl] = useState('');
     const [addingRepo, setAddingRepo] = useState(false);
@@ -99,20 +120,25 @@ export default function Dashboard({ user, token }: DashboardProps) {
     const [findError, setFindError] = useState<string>('');
     const [findResultsPerPage, setFindResultsPerPage] = useState(10);
     const [findSortBy, setFindSortBy] = useState<'stars' | 'forks' | 'updated' | 'watchers'>('stars');
-    const [lastFetchedCount, setLastFetchedCount] = useState(0);
     const [findCurrentPage, setFindCurrentPage] = useState(1);
     const [findItemsPerPage] = useState(10);
 
     // Cache invalidation helper
-    const { invalidateAll } = useInvalidateRepositories();
+    useInvalidateRepositories();
+
+    // State for minimum loading animation duration
+    const [isManualRefreshingAnalyzed, setIsManualRefreshingAnalyzed] = useState(false);
 
     // Wrapper function for backward compatibility
     const loadRepositories = () => {
         refetchRepos();
     };
 
-    const loadAnalyzedRepositories = () => {
-        refetchAnalyzed();
+    const loadAnalyzedRepositories = async () => {
+        setIsManualRefreshingAnalyzed(true);
+        const minDelay = new Promise(resolve => setTimeout(resolve, 1000)); // Minimum 1 second
+        await Promise.all([refetchAnalyzed(), minDelay]);
+        setIsManualRefreshingAnalyzed(false);
     };
 
     const handleAnalyze = async (owner: string, name: string) => {
@@ -126,26 +152,26 @@ export default function Dashboard({ user, token }: DashboardProps) {
             // Handle different response types
             if (result.alreadyHasAccess) {
                 // User already has access
-                alert(`Repository Access\n\nYou already have access to this repository!`);
+                toast.info('Repository Access', { description: 'You already have access to this repository!' });
                 setActiveTab('analyzed');
                 await loadAnalyzedRepositories();
             } else if (result.accessGranted) {
                 // Repository was analyzed by someone else, access granted
                 const message = result.message || `Repository was analyzed by${result.analyzedBy ? ' ' + result.analyzedBy : ' another user'}. Access granted!`;
-                alert(`Access Granted\n\n${message}\n\nYou can now view this repository in the "Analyzed Repository" tab.`);
+                toast.success('Access Granted', { description: `${message} You can now view this repository in the "Analyzed Repository" tab.` });
                 setActiveTab('analyzed');
                 await loadAnalyzedRepositories();
             } else if (result.newAnalysis) {
                 // New analysis started
-                alert(`Analysis Started\n\nAnalysis started for ${owner}/${name}!\n\nThis will take a few minutes. Check the "Analyzed Repository" tab to see the status.`);
+                toast.success('Analysis Started', { description: `Analysis started for ${owner}/${name}! This will take a few minutes. Check the "Analyzed Repository" tab to see the status.` });
                 await loadRepositories();
             } else {
                 // Fallback for any other response
-                alert(`Analysis Started\n\nAnalysis started for ${owner}/${name}!`);
+                toast.success('Analysis Started', { description: `Analysis started for ${owner}/${name}!` });
             }
         } catch (error: any) {
             console.error('Analysis failed:', error);
-            alert(`Failed to Analyze\n\nFailed to analyze ${owner}/${name}\n\n${error.message}`);
+            toast.error('Failed to Analyze', { description: `Failed to analyze ${owner}/${name}: ${error.message}` });
         } finally {
             setAnalyzing(prev => {
                 const newSet = new Set(prev);
@@ -164,28 +190,43 @@ export default function Dashboard({ user, token }: DashboardProps) {
             console.log('Repository status:', status);
 
             if (!status.analyzed) {
-                alert('Repository Not Analyzed\n\nThis repository has not been analyzed yet. Click "Analyze" first!');
+                toast.warning('Repository Not Analyzed', { description: 'This repository has not been analyzed yet. Click "Analyze" first!' });
                 return;
             }
 
             if (status.status === 'ready') {
+                toast.info('Opening Repository', { description: 'Fetching latest code and opening repository...' });
                 navigate(`/repo/${status.repositoryId}`);
             } else if (status.status === 'analyzing') {
-                alert('Analysis in Progress\n\nAnalysis is still in progress. Please wait a few minutes and try again.');
+                toast.info('Analysis in Progress', { description: 'Analysis is still in progress. Please wait a few minutes and try again.' });
             } else if (status.status === 'pending') {
-                alert('Analysis Queued\n\nAnalysis is queued and will start soon.');
+                toast.info('Analysis Queued', { description: 'Analysis is queued and will start soon.' });
             } else {
-                alert(`Repository Status\n\nCurrent status: ${status.status}`);
+                toast.info('Repository Status', { description: `Current status: ${status.status}` });
             }
         } catch (error: any) {
             console.error('Failed to check status:', error);
-            alert(`Status Check Failed\n\n${error.message}`);
+            toast.error('Status Check Failed', { description: error.message });
         } finally {
             setCheckingStatus(prev => {
                 const newSet = new Set(prev);
                 newSet.delete(key);
                 return newSet;
             });
+        }
+    };
+
+    const handleDeleteRepository = async (repoId: string, repoName: string) => {
+        try {
+            await api.deleteRepository(repoId);
+            toast.success('Repository Deleted', { description: `Analysis for ${repoName} has been deleted.` });
+            setDeleteConfirmRepo(null);
+            await loadAnalyzedRepositories();
+            // Also refresh the "Your Repositories" list as the status changes back to not analyzed
+            loadRepositories();
+        } catch (error: any) {
+            console.error('Failed to delete repository:', error);
+            toast.error('Delete Failed', { description: error.message });
         }
     };
 
@@ -205,13 +246,13 @@ export default function Dashboard({ user, token }: DashboardProps) {
             // Handle different response types
             if (result.alreadyHasAccess) {
                 // User already has access
-                alert('Repository Access\n\nYou already have access to this repository!\n\nNavigating to the "Analyzed Repository" tab.');
+                toast.info('Repository Access', { description: 'You already have access to this repository! Navigating to the "Analyzed Repository" tab.' });
                 setActiveTab('analyzed');
                 setRepoUrl('');
             } else if (result.accessGranted) {
                 // Repository was analyzed by someone else, access granted
                 const timeAgoText = result.analyzedBy ? ` by ${result.analyzedBy}` : '';
-                alert(`Access Granted\n\nRepository was already analyzed${timeAgoText}. Access granted!\n\nNavigating to the "Analyzed Repository" tab.`);
+                toast.success('Access Granted', { description: `Repository was already analyzed${timeAgoText}. Access granted! Navigating to the "Analyzed Repository" tab.` });
                 setActiveTab('analyzed');
                 setRepoUrl('');
             } else if (result.newAnalysis) {
@@ -225,10 +266,10 @@ export default function Dashboard({ user, token }: DashboardProps) {
             } else if (result.alreadyExists) {
                 // Legacy handling for old backend responses
                 if (result.status === 'ready') {
-                    alert('Repository Already Analyzed\n\nThis repository has already been analyzed. You can view it in the "Analyzed Repository" tab.');
+                    toast.info('Repository Already Analyzed', { description: 'This repository has already been analyzed. You can view it in the "Analyzed Repository" tab.' });
                     setActiveTab('analyzed');
                 } else {
-                    alert('Analysis in Progress\n\nThis repository is already being analyzed. Check the "Analyzed Repository" tab for status updates.');
+                    toast.info('Analysis in Progress', { description: 'This repository is already being analyzed. Check the "Analyzed Repository" tab for status updates.' });
                     setActiveTab('analyzed');
                 }
             } else {
@@ -312,7 +353,6 @@ export default function Dashboard({ user, token }: DashboardProps) {
             console.log('🔢 Total Count:', data.total_count);
 
             setFindRepositories(data.items || []);
-            setLastFetchedCount(findResultsPerPage);
         } catch (error: any) {
             console.error('❌ Failed to search repositories:', error);
             setFindError(error.message || 'Failed to search repositories');
@@ -372,9 +412,14 @@ export default function Dashboard({ user, token }: DashboardProps) {
                     </Button>
                 </div>
 
-                {/* Collapsible Quick Guide */}
-                {showQuickGuide && (
-                    <Card className="mt-4 max-w-4xl">
+                {/* Collapsible Quick Guide - with smooth transition */}
+                <div
+                    className={`grid transition-all duration-300 ${showQuickGuide
+                        ? 'grid-rows-[1fr] opacity-100 mt-4'
+                        : 'grid-rows-[0fr] opacity-0 mt-0'
+                        }`}
+                >
+                    <Card className="max-w-4xl overflow-hidden">
                         <CardContent className="pt-6">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="flex items-center gap-3">
@@ -396,7 +441,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
                             </div>
                         </CardContent>
                     </Card>
-                )}
+                </div>
             </div>
 
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabType)}>
@@ -463,9 +508,9 @@ export default function Dashboard({ user, token }: DashboardProps) {
                             <AlertDescription>
                                 {error}
                                 <div className="mt-4">
-                                    <Button onClick={loadRepositories} variant="outline" size="sm">
-                                        <RefreshCw className="h-4 w-4 mr-2" />
-                                        Try Again
+                                    <Button onClick={loadRepositories} variant="outline" size="sm" disabled={isRefreshingRepos} className={resolvedTheme === 'night' ? 'hover:bg-primary/40' : resolvedTheme === 'dark' ? 'hover:bg-blue-500/30' : resolvedTheme === 'light' ? 'hover:bg-blue-100 hover:text-blue-700' : ''}>
+                                        <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshingRepos ? 'animate-spin' : ''}`} />
+                                        {isRefreshingRepos ? 'Retrying...' : 'Try Again'}
                                     </Button>
                                 </div>
                             </AlertDescription>
@@ -501,9 +546,9 @@ export default function Dashboard({ user, token }: DashboardProps) {
                                             className="pl-9 pr-4 py-2 text-sm border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-all duration-200 hover:shadow-[0_0_10px_rgba(255,255,255,0.3)] w-[200px]"
                                         />
                                     </div>
-                                    <Button onClick={loadRepositories} variant="outline" size="sm">
-                                        <RefreshCw className="h-4 w-4 mr-2" />
-                                        Refresh
+                                    <Button onClick={loadRepositories} variant="outline" size="sm" disabled={isRefreshingRepos} className={resolvedTheme === 'night' ? 'hover:bg-primary/40' : resolvedTheme === 'dark' ? 'hover:bg-blue-500/30' : resolvedTheme === 'light' ? 'hover:bg-blue-100 hover:text-blue-700' : ''}>
+                                        <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshingRepos ? 'animate-spin' : ''}`} />
+                                        {isRefreshingRepos ? 'Refreshing...' : 'Refresh'}
                                     </Button>
                                 </div>
                             </div>
@@ -514,6 +559,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
                                     onClick={() => setRepoFilter('all')}
                                     variant={repoFilter === 'all' ? 'default' : 'outline'}
                                     size="sm"
+                                    className={repoFilter !== 'all' && (resolvedTheme === 'night' ? 'hover:bg-primary/40' : resolvedTheme === 'dark' ? 'hover:bg-blue-500/30' : resolvedTheme === 'light' ? 'hover:bg-blue-100 hover:text-blue-700' : '') || ''}
                                 >
                                     All ({repos.length})
                                 </Button>
@@ -521,6 +567,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
                                     onClick={() => setRepoFilter('public')}
                                     variant={repoFilter === 'public' ? 'default' : 'outline'}
                                     size="sm"
+                                    className={repoFilter !== 'public' && (resolvedTheme === 'night' ? 'hover:bg-primary/40' : resolvedTheme === 'dark' ? 'hover:bg-blue-500/30' : resolvedTheme === 'light' ? 'hover:bg-blue-100 hover:text-blue-700' : '') || ''}
                                 >
                                     Public ({repos.filter((r: any) => r.private === false).length})
                                 </Button>
@@ -528,6 +575,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
                                     onClick={() => setRepoFilter('private')}
                                     variant={repoFilter === 'private' ? 'default' : 'outline'}
                                     size="sm"
+                                    className={repoFilter !== 'private' && (resolvedTheme === 'night' ? 'hover:bg-primary/40' : resolvedTheme === 'dark' ? 'hover:bg-blue-500/30' : resolvedTheme === 'light' ? 'hover:bg-blue-100 hover:text-blue-700' : '') || ''}
                                 >
                                     Private ({repos.filter((r: any) => r.private === true).length})
                                 </Button>
@@ -535,11 +583,20 @@ export default function Dashboard({ user, token }: DashboardProps) {
                                     onClick={() => setRepoFilter('contributor')}
                                     variant={repoFilter === 'contributor' ? 'default' : 'outline'}
                                     size="sm"
+                                    className={repoFilter !== 'contributor' && (resolvedTheme === 'night' ? 'hover:bg-primary/40' : resolvedTheme === 'dark' ? 'hover:bg-blue-500/30' : resolvedTheme === 'light' ? 'hover:bg-blue-100 hover:text-blue-700' : '') || ''}
                                 >
                                     Contributor ({repos.filter((r: any) => {
                                         const perms = r.permissions;
                                         return perms && perms.admin === false && perms.push === true;
                                     }).length})
+                                </Button>
+                                <Button
+                                    onClick={() => setRepoFilter('notanalyzed')}
+                                    variant={repoFilter === 'notanalyzed' ? 'default' : 'outline'}
+                                    size="sm"
+                                    className={repoFilter !== 'notanalyzed' && (resolvedTheme === 'night' ? 'hover:bg-primary/40' : resolvedTheme === 'dark' ? 'hover:bg-blue-500/30' : resolvedTheme === 'light' ? 'hover:bg-blue-100 hover:text-blue-700' : '') || ''}
+                                >
+                                    Not Analyzed ({repos.filter((r: any) => r.analyzed !== true).length})
                                 </Button>
                             </div>
 
@@ -575,6 +632,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
                                             const perms = repo.permissions;
                                             if (!perms || perms.admin === true || perms.push !== true) return false;
                                         }
+                                        if (repoFilter === 'notanalyzed' && repo.analyzed === true) return false;
 
                                         // Filter by search query
                                         if (!searchQuery.trim()) return true;
@@ -596,8 +654,26 @@ export default function Dashboard({ user, token }: DashboardProps) {
                                                 <CardHeader>
                                                     <div className="flex items-start justify-between">
                                                         <div className="space-y-1 flex-1">
-                                                            <CardTitle className="text-lg">
+                                                            <CardTitle className="text-lg flex items-center gap-2">
                                                                 {repo.login}/{repo.name}
+                                                                <TooltipProvider delayDuration={200}>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <a
+                                                                                href={`https://github.com/${repo.login}/${repo.name}`}
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                className="text-muted-foreground hover:text-primary transition-colors"
+                                                                                onClick={(e) => e.stopPropagation()}
+                                                                            >
+                                                                                <Github className="h-4 w-4" />
+                                                                            </a>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent side="bottom">
+                                                                            Open on GitHub
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </TooltipProvider>
                                                             </CardTitle>
                                                             <CardDescription>
                                                                 {repo.description || 'No description'}
@@ -616,14 +692,26 @@ export default function Dashboard({ user, token }: DashboardProps) {
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        <div className="ml-4">
+                                                        <div className="ml-4 flex items-center gap-2">
+                                                            {isAnalyzed && (
+                                                                <button
+                                                                    className="text-white hover:text-destructive transition-colors cursor-pointer"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setDeleteConfirmRepo({ id: repo.analyzedRepositoryId, name: `${repo.login}/${repo.name}` });
+                                                                    }}
+                                                                    title="Delete Analysis"
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </button>
+                                                            )}
                                                             {isAnalyzing ? (
                                                                 <Button disabled size="sm">
                                                                     <Loader className="h-4 w-4 mr-2 animate-spin" />
                                                                     Starting...
                                                                 </Button>
                                                             ) : !isAnalyzed ? (
-                                                                <Button onClick={() => handleAnalyze(repo.login, repo.name)} size="sm">
+                                                                <Button onClick={() => setAnalyzeConfirmRepo({ login: repo.login, name: repo.name })} size="sm">
                                                                     Analyze
                                                                 </Button>
                                                             ) : isCheckingStatus ? (
@@ -636,7 +724,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
                                                                     View Analysis
                                                                 </Button>
                                                             ) : (
-                                                                <Button onClick={() => handleViewAnalysis(repo.login, repo.name)} variant="outline" size="sm">
+                                                                <Button onClick={() => handleViewAnalysis(repo.login, repo.name)} variant="outline" size="sm" className={resolvedTheme === 'night' ? 'hover:bg-primary/40' : resolvedTheme === 'dark' ? 'hover:bg-blue-500/30' : resolvedTheme === 'light' ? 'hover:bg-blue-100 hover:text-blue-700' : ''}>
                                                                     Check Status
                                                                 </Button>
                                                             )}
@@ -702,9 +790,9 @@ export default function Dashboard({ user, token }: DashboardProps) {
                                     className="pl-9 pr-4 py-2 text-sm border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-all duration-200 hover:shadow-[0_0_10px_rgba(255,255,255,0.3)] w-[200px]"
                                 />
                             </div>
-                            <Button onClick={loadAnalyzedRepositories} variant="outline" size="sm">
-                                <RefreshCw className="h-4 w-4 mr-2" />
-                                Refresh
+                            <Button onClick={loadAnalyzedRepositories} variant="outline" size="sm" disabled={isManualRefreshingAnalyzed} className={resolvedTheme === 'night' ? 'hover:bg-primary/40' : resolvedTheme === 'dark' ? 'hover:bg-blue-500/30' : resolvedTheme === 'light' ? 'hover:bg-blue-100 hover:text-blue-700' : ''}>
+                                <RefreshCw className={`h-4 w-4 mr-2 ${isManualRefreshingAnalyzed ? 'animate-spin' : ''}`} />
+                                {isManualRefreshingAnalyzed ? 'Refreshing...' : 'Refresh'}
                             </Button>
                         </div>
                     </div>
@@ -714,6 +802,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
                             onClick={() => setAnalyzedFilter('all')}
                             variant={analyzedFilter === 'all' ? 'default' : 'outline'}
                             size="sm"
+                            className={analyzedFilter !== 'all' && (resolvedTheme === 'night' ? 'hover:bg-primary/40' : resolvedTheme === 'dark' ? 'hover:bg-blue-500/30' : resolvedTheme === 'light' ? 'hover:bg-blue-100 hover:text-blue-700' : '') || ''}
                         >
                             All
                         </Button>
@@ -721,6 +810,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
                             onClick={() => setAnalyzedFilter('your')}
                             variant={analyzedFilter === 'your' ? 'default' : 'outline'}
                             size="sm"
+                            className={analyzedFilter !== 'your' && (resolvedTheme === 'night' ? 'hover:bg-primary/40' : resolvedTheme === 'dark' ? 'hover:bg-blue-500/30' : resolvedTheme === 'light' ? 'hover:bg-blue-100 hover:text-blue-700' : '') || ''}
                         >
                             Your
                         </Button>
@@ -728,6 +818,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
                             onClick={() => setAnalyzedFilter('others')}
                             variant={analyzedFilter === 'others' ? 'default' : 'outline'}
                             size="sm"
+                            className={analyzedFilter !== 'others' && (resolvedTheme === 'night' ? 'hover:bg-primary/40' : resolvedTheme === 'dark' ? 'hover:bg-blue-500/30' : resolvedTheme === 'light' ? 'hover:bg-blue-100 hover:text-blue-700' : '') || ''}
                         >
                             Others
                         </Button>
@@ -770,13 +861,19 @@ export default function Dashboard({ user, token }: DashboardProps) {
                             </CardContent>
                         </Card>
                     ) : (() => {
-                        // Filter analyzed repos by search query
-                        const filteredAnalyzedRepos = analyzedRepos.filter((repo: any) => {
-                            if (!analyzedSearchQuery.trim()) return true;
-                            const query = analyzedSearchQuery.toLowerCase();
-                            const repoName = `${repo.ownerUsername}/${repo.name}`.toLowerCase();
-                            return repoName.includes(query);
-                        });
+                        // Sort by analyzedAt (most recent first) then filter by search query
+                        const filteredAnalyzedRepos = [...analyzedRepos]
+                            .sort((a: any, b: any) => {
+                                const dateA = a.analyzedAt ? new Date(a.analyzedAt).getTime() : 0;
+                                const dateB = b.analyzedAt ? new Date(b.analyzedAt).getTime() : 0;
+                                return dateB - dateA; // Most recent first
+                            })
+                            .filter((repo: any) => {
+                                if (!analyzedSearchQuery.trim()) return true;
+                                const query = analyzedSearchQuery.toLowerCase();
+                                const repoName = `${repo.ownerUsername}/${repo.name}`.toLowerCase();
+                                return repoName.includes(query);
+                            });
 
                         // Paginate filtered results
                         const paginatedRepos = filteredAnalyzedRepos.slice(
@@ -792,8 +889,26 @@ export default function Dashboard({ user, token }: DashboardProps) {
                                             <CardHeader>
                                                 <div className="flex items-start justify-between">
                                                     <div className="space-y-2 flex-1">
-                                                        <CardTitle className="text-lg">
+                                                        <CardTitle className="text-lg flex items-center gap-2">
                                                             {repo.ownerUsername}/{repo.name}
+                                                            <TooltipProvider delayDuration={200}>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <a
+                                                                            href={`https://github.com/${repo.ownerUsername}/${repo.name}`}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="text-muted-foreground hover:text-primary transition-colors"
+                                                                            onClick={(e) => e.stopPropagation()}
+                                                                        >
+                                                                            <Github className="h-4 w-4" />
+                                                                        </a>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent side="bottom">
+                                                                        Open on GitHub
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
                                                         </CardTitle>
                                                         <div className="flex gap-2">
                                                             <Badge variant={repo.isMine ? 'success' : 'info'}>
@@ -808,35 +923,46 @@ export default function Dashboard({ user, token }: DashboardProps) {
                                                             </Badge>
                                                         </div>
                                                     </div>
-                                                    <Button
-                                                        onClick={() => {
-                                                            if (repo.status === 'ready') {
-                                                                navigate(`/repo/${repo.id}`);
-                                                            } else if (repo.status === 'analyzing') {
-                                                                alert('Analysis in Progress\n\nThis repository is still being analyzed. Please check back in a few minutes.');
-                                                            } else {
-                                                                alert(`Repository Status\n\nCurrent status: ${repo.status}`);
-                                                            }
-                                                        }}
-                                                        disabled={repo.status !== 'ready'}
-                                                        size="sm"
-                                                    >
-                                                        {repo.status === 'ready' ? 'View Details' :
-                                                            repo.status === 'analyzing' ? 'Analyzing...' : 'Pending'}
-                                                    </Button>
+                                                    <div className="flex gap-2 items-center">
+                                                        <button
+                                                            className="text-white hover:text-destructive transition-colors cursor-pointer"
+                                                            onClick={() => setDeleteConfirmRepo({ id: repo.id, name: `${repo.ownerUsername}/${repo.name}` })}
+                                                            title="Delete Analysis"
+                                                        >
+                                                            <Trash2 className="h-5 w-5" />
+                                                        </button>
+                                                        <Button
+                                                            onClick={() => {
+                                                                if (repo.status === 'ready') {
+                                                                    navigate(`/repo/${repo.id}`);
+                                                                } else if (repo.status === 'analyzing') {
+                                                                    toast.info('Analysis in Progress', { description: 'This repository is still being analyzed. Please check back in a few minutes.' });
+                                                                } else {
+                                                                    toast.info('Repository Status', { description: `Current status: ${repo.status}` });
+                                                                }
+                                                            }}
+                                                            disabled={repo.status !== 'ready'}
+                                                            size="sm"
+                                                        >
+                                                            {repo.status === 'ready' ? 'View Details' :
+                                                                repo.status === 'analyzing' ? 'Analyzing...' : 'Pending'}
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                             </CardHeader>
                                         </Card>
                                     ))}
-                                </div>
-                                {filteredAnalyzedRepos.length > 0 && (
-                                    <Pagination
-                                        currentPage={analyzedCurrentPage}
-                                        onPageChange={setAnalyzedCurrentPage}
-                                        totalPages={Math.ceil(filteredAnalyzedRepos.length / itemsPerPage)}
-                                        disabled={loadingAnalyzed}
-                                    />
-                                )}
+                                </div >
+                                {
+                                    filteredAnalyzedRepos.length > 0 && (
+                                        <Pagination
+                                            currentPage={analyzedCurrentPage}
+                                            onPageChange={setAnalyzedCurrentPage}
+                                            totalPages={Math.ceil(filteredAnalyzedRepos.length / itemsPerPage)}
+                                            disabled={loadingAnalyzed}
+                                        />
+                                    )
+                                }
                             </>
                         );
                     })()}
@@ -850,14 +976,14 @@ export default function Dashboard({ user, token }: DashboardProps) {
                             <Button
                                 onClick={() => setAddSubTab('url')}
                                 variant={addSubTab === 'url' ? 'default' : 'outline'}
-                                className="flex-1"
+                                className={`flex-1 ${addSubTab !== 'url' && (resolvedTheme === 'night' ? 'hover:bg-primary/40' : resolvedTheme === 'dark' ? 'hover:bg-blue-500/30' : resolvedTheme === 'light' ? 'hover:bg-blue-100 hover:text-blue-700' : '') || ''}`}
                             >
                                 Add by URL
                             </Button>
                             <Button
                                 onClick={() => setAddSubTab('find')}
                                 variant={addSubTab === 'find' ? 'default' : 'outline'}
-                                className="flex-1"
+                                className={`flex-1 ${addSubTab !== 'find' && (resolvedTheme === 'night' ? 'hover:bg-primary/40' : resolvedTheme === 'dark' ? 'hover:bg-blue-500/30' : resolvedTheme === 'light' ? 'hover:bg-blue-100 hover:text-blue-700' : '') || ''}`}
                             >
                                 <Search className="h-4 w-4 mr-2" />
                                 Find Repository
@@ -1187,6 +1313,66 @@ export default function Dashboard({ user, token }: DashboardProps) {
                     </div>
                 </TabsContent>
             </Tabs>
+
+            {/* Analyze Confirmation Dialog */}
+            <AlertDialog open={!!analyzeConfirmRepo} onOpenChange={(open) => !open && setAnalyzeConfirmRepo(null)}>
+                <AlertDialogContent className="sm:max-w-md">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Start Repository Analysis</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Analysis may take some time depending on the repository size. This process will analyze the repository structure, code, and generate insights.
+                            <br /><br />
+                            Do you want to proceed with the analysis?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className={`${resolvedTheme === 'night' ? 'hover:bg-primary/40' : resolvedTheme === 'dark' ? 'hover:bg-blue-500/30' : resolvedTheme === 'light' ? 'hover:bg-blue-100 hover:text-blue-700' : ''}`}>
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                if (analyzeConfirmRepo) {
+                                    handleAnalyze(analyzeConfirmRepo.login, analyzeConfirmRepo.name);
+                                    setAnalyzeConfirmRepo(null);
+                                }
+                            }}
+                        >
+                            Start Analysis
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={!!deleteConfirmRepo} onOpenChange={(open) => !open && setDeleteConfirmRepo(null)}>
+                <AlertDialogContent className="sm:max-w-md">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Analysis</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete the analysis{deleteConfirmRepo && ` for ${deleteConfirmRepo.name}`}?
+                            <br /><br />
+                            This will remove the repository from your analyzed list and delete all associated data (commits, file analysis, chat history).
+                            <br /><br />
+                            <span className="font-bold text-destructive">This action cannot be undone.</span>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className={`${resolvedTheme === 'night' ? 'hover:bg-primary/40' : resolvedTheme === 'dark' ? 'hover:bg-blue-500/30' : resolvedTheme === 'light' ? 'hover:bg-blue-100 hover:text-blue-700' : ''}`}>
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                            onClick={() => {
+                                if (deleteConfirmRepo) {
+                                    handleDeleteRepository(deleteConfirmRepo.id, deleteConfirmRepo.name);
+                                }
+                            }}
+                        >
+                            Delete Analysis
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div >
     );
 }

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { GitPullRequest, GitBranch, Clock, FileText, AlertTriangle, CheckCircle, ChevronDown, ChevronRight, Target, Users, MessageSquare } from 'lucide-react';
-import { api } from '../utils/api';
 import BackButton from '../components/BackButton';
 import Pagination from '../components/Pagination';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -202,7 +201,7 @@ export default function PullRequestView({ user: _user }: PullRequestViewProps) {
                                         </div>
                                         <div className="text-right flex-shrink-0">
                                             <div className="text-lg font-bold text-green-600 dark:text-green-400">
-                                                {reviewer.percentage.toFixed(1)}%
+                                                {Math.round(reviewer.percentage)}%
                                             </div>
                                             <div className="text-xs text-muted-foreground">
                                                 {reviewer.filesContributed} {reviewer.filesContributed === 1 ? 'file' : 'files'}
@@ -236,7 +235,7 @@ export default function PullRequestView({ user: _user }: PullRequestViewProps) {
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-semibold">PR #{conflict.prNumber}</span>
                                                     <Badge variant="destructive">
-                                                        {conflict.conflictPercentage.toFixed(0)}% overlap
+                                                        {Math.round(conflict.conflictPercentage)}% overlap
                                                     </Badge>
                                                 </div>
                                             </div>
@@ -297,30 +296,38 @@ export default function PullRequestView({ user: _user }: PullRequestViewProps) {
                                             </div>
                                         </CardHeader>
 
-                                        {expandedFiles.has(file.filename) && file.patch && (
-                                            <CardContent className="pt-0">
-                                                <div className="bg-muted/30 rounded-md overflow-hidden border">
-                                                    {file.patch.split('\n').map((line: string, lineIdx: number) => {
-                                                        let className = 'px-4 py-0.5 font-mono text-xs';
-                                                        if (line.startsWith('+') && !line.startsWith('+++')) {
-                                                            className += ' bg-green-500/10 text-green-600 dark:text-green-400 border-l-2 border-green-500';
-                                                        } else if (line.startsWith('-') && !line.startsWith('---')) {
-                                                            className += ' bg-red-500/10 text-red-600 dark:text-red-400 border-l-2 border-red-500';
-                                                        } else if (line.startsWith('@@')) {
-                                                            className += ' bg-blue-500/10 text-primary border-l-2 border-primary';
-                                                        } else if (line.startsWith('+++') || line.startsWith('---')) {
-                                                            className += ' text-muted-foreground';
-                                                        }
+                                        {/* Smooth transition for file expansion */}
+                                        <div
+                                            className={`grid transition-all duration-300 ${expandedFiles.has(file.filename) && file.patch
+                                                ? 'grid-rows-[1fr] opacity-100'
+                                                : 'grid-rows-[0fr] opacity-0'
+                                                }`}
+                                        >
+                                            <div className="overflow-hidden">
+                                                <CardContent className="pt-0">
+                                                    <div className="bg-muted/30 rounded-md overflow-hidden border">
+                                                        {file.patch?.split('\n').map((line: string, lineIdx: number) => {
+                                                            let className = 'px-4 py-0.5 font-mono text-xs';
+                                                            if (line.startsWith('+') && !line.startsWith('+++')) {
+                                                                className += ' bg-green-500/10 text-green-600 dark:text-green-400 border-l-2 border-green-500';
+                                                            } else if (line.startsWith('-') && !line.startsWith('---')) {
+                                                                className += ' bg-red-500/10 text-red-600 dark:text-red-400 border-l-2 border-red-500';
+                                                            } else if (line.startsWith('@@')) {
+                                                                className += ' bg-blue-500/10 text-primary border-l-2 border-primary';
+                                                            } else if (line.startsWith('+++') || line.startsWith('---')) {
+                                                                className += ' text-muted-foreground';
+                                                            }
 
-                                                        return (
-                                                            <div key={lineIdx} className={className}>
-                                                                {line || ' '}
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </CardContent>
-                                        )}
+                                                            return (
+                                                                <div key={lineIdx} className={className}>
+                                                                    {line || ' '}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </CardContent>
+                                            </div>
+                                        </div>
                                     </Card>
                                 ))}
                         </div>
