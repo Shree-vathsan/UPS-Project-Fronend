@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Users, Plus, Trash2, UserPlus, Shield, User, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { API_BASE_URL } from '../config';
+import { useUserRole } from '../hooks/useRoleManagement';
 
 interface TeamsTabProps {
     repositoryId: string;
@@ -38,9 +39,19 @@ interface RepositoryUser {
 }
 
 export function TeamsTab({ repositoryId }: TeamsTabProps) {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    // Memoize user to prevent infinite loops
+    const user = useMemo(() => {
+        const stored = localStorage.getItem('user');
+        return stored ? JSON.parse(stored) : {};
+    }, []);
+
+    const userId = user?.id || localStorage.getItem('userId') || '';
+
+    // Use role detection - owners and admins can manage teams
+    const { data: userRole } = useUserRole(repositoryId, userId);
+    const canManageTeams = (userRole?.isOwner || userRole?.isAdmin) ?? false;
+
     const [teams, setTeams] = useState<Team[]>([]);
-    const [isAdmin, setIsAdmin] = useState(false);
     const [loading, setLoading] = useState(true);
     const [repositoryUsers, setRepositoryUsers] = useState<RepositoryUser[]>([]);
 
@@ -55,21 +66,20 @@ export function TeamsTab({ repositoryId }: TeamsTabProps) {
     const [selectedRole, setSelectedRole] = useState<'team_leader' | 'contributor'>('contributor');
 
     useEffect(() => {
-        if (repositoryId && user) {
+        if (repositoryId && userId) {
             fetchTeams();
             fetchRepositoryUsers();
         }
-    }, [repositoryId, user]);
+    }, [repositoryId, userId]); // Fixed: use userId instead of user object
 
     const fetchTeams = async () => {
         try {
             const response = await fetch(
-                `${API_BASE_URL}/repositories/${repositoryId}/teams?userId=${user?.id}`,
+                `${API_BASE_URL}/repositories/${repositoryId}/teams?userId=${userId}`,
                 { credentials: 'include' }
             );
             const data = await response.json();
             setTeams(data.teams || []);
-            setIsAdmin(data.isAdmin || false);
         } catch (error) {
             console.error('Error fetching teams:', error);
         } finally {
@@ -238,7 +248,7 @@ export function TeamsTab({ repositoryId }: TeamsTabProps) {
                         Organize contributors into teams with designated leaders
                     </p>
                 </div>
-                {isAdmin && (
+                {canManageTeams && (
                     <Button onClick={() => setCreateTeamOpen(true)} className="gap-2">
                         <Plus className="h-4 w-4" />
                         Create Team
@@ -246,21 +256,21 @@ export function TeamsTab({ repositoryId }: TeamsTabProps) {
                 )}
             </div>
 
-            {/* Admin Notice */}
-            {!isAdmin && teams.length === 0 && (
+            {/* Access Notice */}
+            {!canManageTeams && teams.length === 0 && (
                 <Card>
                     <CardContent className="py-12 text-center">
                         <Shield className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                         <h3 className="font-heading text-lg font-semibold mb-2">Admin Access Required</h3>
                         <p className="text-muted-foreground text-sm">
-                            Only repository admins can create and manage teams.
+                            Only repository owners and admins can create and manage teams.
                         </p>
                     </CardContent>
                 </Card>
             )}
 
             {/* Teams List */}
-            {teams.length === 0 && isAdmin && (
+            {teams.length === 0 && canManageTeams && (
                 <Card>
                     <CardContent className="py-12 text-center">
                         <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -291,7 +301,7 @@ export function TeamsTab({ repositoryId }: TeamsTabProps) {
                                         {team.createdByUsername && ` · Created by ${team.createdByUsername}`}
                                     </CardDescription>
                                 </div>
-                                {isAdmin && (
+                                {canManageTeams && (
                                     <div className="flex gap-2">
                                         <Button
                                             onClick={() => {
@@ -351,7 +361,7 @@ export function TeamsTab({ repositoryId }: TeamsTabProps) {
                                                     </Badge>
                                                 </div>
                                             </div>
-                                            {isAdmin && (
+                                            {canManageTeams && (
                                                 <div className="flex gap-2">
                                                     <select
                                                         value={member.role}

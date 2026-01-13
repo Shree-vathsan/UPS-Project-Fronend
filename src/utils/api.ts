@@ -517,5 +517,35 @@ export const api = {
             headers
         });
         return handleResponse(res);
+    },
+
+    // ==========================================
+    // RBAC & ACCESS CONTROL
+    // ==========================================
+
+    async getUserRole(repositoryId: string, userId: string) {
+        const res = await fetch(`${API_BASE}/repositories/${repositoryId}/user-role?userId=${userId}`);
+        return handleResponse(res);
+    },
+
+    async getAdmins(repositoryId: string, userId: string) {
+        const res = await fetch(`${API_BASE}/repositories/${repositoryId}/admins?userId=${userId}`);
+        return handleResponse(res);
+    },
+
+    async addAdmin(repositoryId: string, currentUserId: string, adminUserId: string) {
+        const res = await fetch(`${API_BASE}/repositories/${repositoryId}/admins`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ currentUserId, adminUserId })
+        });
+        return handleResponse(res);
+    },
+
+    async removeAdmin(repositoryId: string, adminId: string, userId: string) {
+        const res = await fetch(`${API_BASE}/repositories/${repositoryId}/admins/${adminId}?userId=${userId}`, {
+            method: 'DELETE'
+        });
+        return handleResponse(res);
     }
 };

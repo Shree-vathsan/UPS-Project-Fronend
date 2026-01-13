@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { GitCommit, GitPullRequest, FolderTree, BarChart, RefreshCw, GitBranch, Clock, ArrowRight, StickyNote, Users, TrendingUp } from 'lucide-react';
+import { GitCommit, GitPullRequest, FolderTree, BarChart, RefreshCw, GitBranch, Clock, ArrowRight, StickyNote, Users, TrendingUp, Shield } from 'lucide-react';
 import FileTree from '../components/FileTree';
 import BackButton from '../components/BackButton';
 import RepositoryAnalytics from '../components/RepositoryAnalytics';
@@ -8,6 +8,7 @@ import TeamInsights from '../components/TeamInsights';
 import { RepositoryNotesTab } from '../components/RepositoryNotesTab';
 import { TeamsTab } from '../components/TeamsTab';
 import { TeamContributorAnalysis } from '../components/TeamContributorAnalysis';
+import { AdminsTab } from '../components/AdminsTab';
 import Pagination from '../components/Pagination';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +22,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useRepository, useBranches, useBranchCommits, usePullRequests, useBranchFiles } from '../hooks/useApiQueries';
+import { useUserRole } from '../hooks/useRoleManagement';
 import { useTheme } from '@/components/theme-provider';
 import { API_BASE_URL } from '../config';
 
@@ -34,16 +36,25 @@ export default function RepoView({ user: _user }: RepoViewProps) {
     const [searchParams, setSearchParams] = useSearchParams();
     const { resolvedTheme } = useTheme();
 
+    // Get user ID from user object (not from separate localStorage key)
+    const storedUser = localStorage.getItem('user');
+    const parsedUser = storedUser ? JSON.parse(storedUser) : {};
+    const userId = parsedUser?.id || _user?.id || '';
+
+    // Get user role
+    const { data: userRole } = useUserRole(repositoryId, userId);
+    const isOwner = userRole?.isOwner ?? false;
+
     // Get initial tab from URL or default to 'commits'
-    const getInitialTab = (): 'commits' | 'prs' | 'files' | 'analytics' | 'notes' | 'teams' | 'contributor-analysis' => {
+    const getInitialTab = (): 'commits' | 'prs' | 'files' | 'analytics' | 'notes' | 'teams' | 'admins' | 'contributor-analysis' => {
         const tabParam = searchParams.get('tab');
-        if (tabParam === 'prs' || tabParam === 'files' || tabParam === 'analytics' || tabParam === 'commits' || tabParam === 'notes' || tabParam === 'teams' || tabParam === 'contributor-analysis') {
+        if (tabParam === 'prs' || tabParam === 'files' || tabParam === 'analytics' || tabParam === 'commits' || tabParam === 'notes' || tabParam === 'teams' || tabParam === 'admins' || tabParam === 'contributor-analysis') {
             return tabParam as any;
         }
         return 'commits';
     };
 
-    const [activeTab, setActiveTab] = useState<'commits' | 'prs' | 'files' | 'analytics' | 'notes' | 'teams' | 'contributor-analysis'>(getInitialTab());
+    const [activeTab, setActiveTab] = useState<'commits' | 'prs' | 'files' | 'analytics' | 'notes' | 'teams' | 'admins' | 'contributor-analysis'>(getInitialTab());
 
     // Get initial branch from URL or default to 'main'
     const getInitialBranch = (): string => {
@@ -240,13 +251,13 @@ export default function RepoView({ user: _user }: RepoViewProps) {
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={(value) => {
-                const newTab = value as 'commits' | 'prs' | 'files' | 'analytics' | 'notes' | 'teams' | 'contributor-analysis';
+                const newTab = value as 'commits' | 'prs' | 'files' | 'analytics' | 'notes' | 'teams' | 'admins' | 'contributor-analysis';
                 setActiveTab(newTab);
                 const newParams = new URLSearchParams(searchParams);
                 newParams.set('tab', newTab);
                 setSearchParams(newParams);
             }}>
-                <TabsList className="grid w-full max-w-4xl grid-cols-7">
+                <TabsList className={`grid w-full max-w-5xl ${isOwner ? 'grid-cols-8' : 'grid-cols-7'}`}>
                     <TabsTrigger value="commits" className="gap-2">
                         <GitCommit className="h-4 w-4" />
                         <span className="hidden sm:inline">Commits</span>
@@ -272,6 +283,12 @@ export default function RepoView({ user: _user }: RepoViewProps) {
                         <Users className="h-4 w-4" />
                         <span className="hidden sm:inline">Teams</span>
                     </TabsTrigger>
+                    {isOwner && (
+                        <TabsTrigger value="admins" className="gap-2">
+                            <Shield className="h-4 w-4" />
+                            <span className="hidden sm:inline">Admins</span>
+                        </TabsTrigger>
+                    )}
                     <TabsTrigger value="contributor-analysis" className="gap-2">
                         <TrendingUp className="h-4 w-4" />
                         <span className="hidden sm:inline">Analytics</span>
@@ -477,6 +494,17 @@ export default function RepoView({ user: _user }: RepoViewProps) {
                 <TabsContent value="teams" className="mt-6">
                     <TeamsTab repositoryId={repositoryId!} />
                 </TabsContent>
+
+                {/* Admins Tab (Owner Only) */}
+                {isOwner && (
+                    <TabsContent value="admins" className="mt-6">
+                        <AdminsTab
+                            repositoryId={repositoryId!}
+                            userId={userId}
+                            isOwner={isOwner}
+                        />
+                    </TabsContent>
+                )}
 
                 {/* Contributor Analysis Tab */}
                 <TabsContent value="contributor-analysis" className="mt-6">

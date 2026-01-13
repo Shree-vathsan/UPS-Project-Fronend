@@ -3,6 +3,7 @@ import { TrendingUp, Users, GitCommit, FileCode, Award, Clock } from 'lucide-rea
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { API_BASE_URL } from '../config';
+import { useUserRole } from '../hooks/useRoleManagement';
 
 interface TeamContributorAnalysisProps {
     repositoryId: string;
@@ -26,19 +27,24 @@ export function TeamContributorAnalysis({ repositoryId }: TeamContributorAnalysi
         return stored ? JSON.parse(stored) : {};
     }, []);
 
+    const userId = user?.id || localStorage.getItem('userId') || '';
+
+    // Use role detection - owners and admins can view analytics
+    const { data: userRole } = useUserRole(repositoryId, userId);
+    const canViewAnalytics = (userRole?.isOwner || userRole?.isAdmin) ?? false;
+
     const [teams, setTeams] = useState<Team[]>([]);
     const [selectedTeamId, setSelectedTeamId] = useState<string>('');
     const [selectedMemberId, setSelectedMemberId] = useState<string>('');
     const [analytics, setAnalytics] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [analyticsLoading, setAnalyticsLoading] = useState(false);
-    const [isAdmin, setIsAdmin] = useState(false);
 
     useEffect(() => {
-        if (repositoryId && user?.id) {
+        if (repositoryId && userId) {
             fetchTeams();
         }
-    }, [repositoryId, user?.id]);
+    }, [repositoryId, userId]);
 
     useEffect(() => {
         if (selectedTeamId) {
@@ -51,12 +57,11 @@ export function TeamContributorAnalysis({ repositoryId }: TeamContributorAnalysi
     const fetchTeams = async () => {
         try {
             const response = await fetch(
-                `${API_BASE_URL}/repositories/${repositoryId}/teams?userId=${user?.id}`,
+                `${API_BASE_URL}/repositories/${repositoryId}/teams?userId=${userId}`,
                 { credentials: 'include' }
             );
             const data = await response.json();
             setTeams(data.teams || []);
-            setIsAdmin(data.isAdmin || false);
         } catch (error) {
             console.error('Error fetching teams:', error);
         } finally {
@@ -100,14 +105,14 @@ export function TeamContributorAnalysis({ repositoryId }: TeamContributorAnalysi
         return <div className="text-center py-8">Loading...</div>;
     }
 
-    if (!isAdmin) {
+    if (!canViewAnalytics) {
         return (
             <Card>
                 <CardContent className="py-12 text-center">
                     <Award className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                     <h3 className="font-heading text-lg font-semibold mb-2">Admin Access Required</h3>
                     <p className="text-muted-foreground text-sm">
-                        Only repository admins can view team contribution analytics.
+                        Only repository owners and admins can view team contribution analytics.
                     </p>
                 </CardContent>
             </Card>
