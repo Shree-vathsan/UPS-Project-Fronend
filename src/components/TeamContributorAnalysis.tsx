@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { TrendingUp, Users, GitCommit, FileCode, Award, Clock } from 'lucide-react';
+import { TrendingUp, Users, GitCommit, FileCode, Award, Clock, Download } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { API_BASE_URL } from '../config';
@@ -100,6 +100,199 @@ export function TeamContributorAnalysis({ repositoryId }: TeamContributorAnalysi
     };
 
     const selectedTeam = teams.find(t => t.id === selectedTeamId);
+    const selectedMember = selectedTeam?.members.find(m => m.userId === selectedMemberId);
+
+    // Context-aware export function - exports exactly what's visible
+    const handleExportPdf = async () => {
+        if (!analytics) return;
+
+        const { jsPDF } = await import('jspdf');
+        const autoTable = (await import('jspdf-autotable')).default;
+
+        const doc = new jsPDF();
+
+        // Colors
+        const primaryColor: [number, number, number] = [59, 130, 246];
+        const textColor: [number, number, number] = [55, 65, 81];
+        const mutedColor: [number, number, number] = [107, 114, 128];
+
+        // Determine context for title
+        const isIndividual = !!selectedMemberId;
+        const contextTitle = isIndividual
+            ? `${analytics.username || selectedMember?.username || 'Member'} - Individual Analysis`
+            : `${selectedTeam?.name || 'Team'} - Team Analysis`;
+
+        // Header
+        doc.setFillColor(...primaryColor);
+        doc.rect(0, 0, 210, 35, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Contributor Analytics', 14, 18);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
+        doc.text(contextTitle, 14, 28);
+
+        // Generated date
+        doc.setTextColor(...mutedColor);
+        doc.setFontSize(9);
+        doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 45);
+
+        let yPos = 55;
+
+        if (isIndividual) {
+            // Individual Member Export
+            doc.setTextColor(...textColor);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Member Overview', 14, yPos);
+            yPos += 8;
+
+            const memberData = [
+                ['Username', analytics.username || 'N/A'],
+                ['Role', analytics.role === 'team_leader' ? 'Team Leader' : 'Contributor'],
+                ['Team', analytics.teamName || selectedTeam?.name || 'N/A'],
+                ['Total Commits', String(analytics.totalCommits || 0)],
+                ['Files Changed', String(analytics.filesChanged || 0)],
+                ['Lines Added', String(analytics.linesAdded || 0)],
+                ['Lines Removed', String(analytics.linesRemoved || 0)],
+                ['Avg Commits/Day', String(analytics.averageCommitsPerDay || 0)],
+                ['Most Active Day', analytics.mostActiveDay || 'N/A'],
+            ];
+
+            autoTable(doc, {
+                startY: yPos,
+                head: [['Metric', 'Value']],
+                body: memberData,
+                theme: 'striped',
+                headStyles: { fillColor: primaryColor },
+                margin: { left: 14, right: 14 },
+            });
+
+            yPos = (doc as any).lastAutoTable.finalY + 15;
+
+            // Personal Hotspots
+            if (analytics.personalHotspots?.length > 0) {
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Personal Hotspots', 14, yPos);
+                yPos += 8;
+
+                const hotspotsData = analytics.personalHotspots.slice(0, 10).map((h: any, i: number) => [
+                    String(i + 1),
+                    h.filePath?.split('/').pop() || h.filePath,
+                    String(h.changes || h.changeCount || 0)
+                ]);
+
+                autoTable(doc, {
+                    startY: yPos,
+                    head: [['#', 'File', 'Changes']],
+                    body: hotspotsData,
+                    theme: 'striped',
+                    headStyles: { fillColor: primaryColor },
+                    margin: { left: 14, right: 14 },
+                });
+            }
+        } else {
+            // Team Export
+            doc.setTextColor(...textColor);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Team Overview', 14, yPos);
+            yPos += 8;
+
+            const teamData = [
+                ['Team Name', selectedTeam?.name || 'N/A'],
+                ['Total Members', String(analytics.totalMembers || selectedTeam?.members.length || 0)],
+                ['Total Commits', String(analytics.totalCommits || 0)],
+                ['Files Changed', String(analytics.totalFilesChanged || 0)],
+                ['Lines Added', String(analytics.totalLinesAdded || 0)],
+                ['Lines Removed', String(analytics.totalLinesRemoved || 0)],
+                ['Most Active Day', analytics.mostActiveDay || 'N/A'],
+            ];
+
+            autoTable(doc, {
+                startY: yPos,
+                head: [['Metric', 'Value']],
+                body: teamData,
+                theme: 'striped',
+                headStyles: { fillColor: primaryColor },
+                margin: { left: 14, right: 14 },
+            });
+
+            yPos = (doc as any).lastAutoTable.finalY + 15;
+
+            // Member Contributions
+            if (analytics.memberContributions?.length > 0) {
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Member Contributions', 14, yPos);
+                yPos += 8;
+
+                const contributorsData = analytics.memberContributions.map((m: any) => [
+                    m.username || 'Unknown',
+                    String(m.totalCommits || 0),
+                    String(m.filesChanged || 0),
+                    `+${m.linesAdded || 0}/-${m.linesRemoved || 0}`,
+                    m.isActive ? 'Active' : 'Inactive'
+                ]);
+
+                autoTable(doc, {
+                    startY: yPos,
+                    head: [['Member', 'Commits', 'Files', 'Lines', 'Status']],
+                    body: contributorsData,
+                    theme: 'striped',
+                    headStyles: { fillColor: primaryColor },
+                    margin: { left: 14, right: 14 },
+                });
+
+                yPos = (doc as any).lastAutoTable.finalY + 15;
+            }
+
+            // Team Hotspots
+            if (analytics.hotspots?.length > 0 && yPos < 220) {
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Team Hotspots', 14, yPos);
+                yPos += 8;
+
+                const hotspotsData = analytics.hotspots.slice(0, 8).map((h: any, i: number) => [
+                    String(i + 1),
+                    h.filePath?.split('/').pop() || h.filePath,
+                    String(h.changes || h.changeCount || 0)
+                ]);
+
+                autoTable(doc, {
+                    startY: yPos,
+                    head: [['#', 'File', 'Changes']],
+                    body: hotspotsData,
+                    theme: 'striped',
+                    headStyles: { fillColor: primaryColor },
+                    margin: { left: 14, right: 14 },
+                });
+            }
+        }
+
+        // Footer
+        const pageCount = doc.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setTextColor(...mutedColor);
+            doc.setFontSize(8);
+            doc.text(
+                `Page ${i} of ${pageCount} • ForeSite Contributor Analytics`,
+                doc.internal.pageSize.width / 2,
+                doc.internal.pageSize.height - 10,
+                { align: 'center' }
+            );
+        }
+
+        // Save with context-aware filename
+        const filename = isIndividual
+            ? `${analytics.username || 'member'}-contributor-analytics.pdf`
+            : `${selectedTeam?.name || 'team'}-contributor-analytics.pdf`;
+        doc.save(filename);
+    };
 
     if (loading && teams.length === 0) {
         return <div className="text-center py-8">Loading...</div>;
@@ -135,6 +328,20 @@ export function TeamContributorAnalysis({ repositoryId }: TeamContributorAnalysi
 
     return (
         <div className="space-y-6">
+            {/* Contributor Analytics Header with Export Button */}
+            <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-heading font-bold">Contributor Analytics</h2>
+                {analytics && (
+                    <button
+                        onClick={handleExportPdf}
+                        className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground/70 hover:text-muted-foreground transition-colors"
+                    >
+                        <Download className="h-3.5 w-3.5" />
+                        <span>Export</span>
+                    </button>
+                )}
+            </div>
+
             {/* Selectors */}
             <Card>
                 <CardHeader>

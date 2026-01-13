@@ -599,7 +599,7 @@ function DiscussionSection({ repositoryId, userId, onFileClick, files: allFiles 
     };
 
     const filteredUsers = users.filter(u =>
-        u.username.toLowerCase().includes(mentionSearch.toLowerCase())
+        u.username && u.username.toLowerCase().includes(mentionSearch.toLowerCase())
     ).slice(0, 5);
 
     const filteredFiles = files.filter((f: any) =>

@@ -11,11 +11,12 @@ import { useTeamInsights } from '../hooks/useApiQueries';
 interface TeamInsightsProps {
     repositoryId: string;
     branchName: string;
+    timelineDays: 0 | 7 | 30;  // 0 = Lifetime, 7 = Past 7 Days, 30 = Past 30 Days
 }
 
-export default function TeamInsights({ repositoryId, branchName }: TeamInsightsProps) {
+export default function TeamInsights({ repositoryId, branchName, timelineDays }: TeamInsightsProps) {
     // React Query hook for data fetching with caching
-    const { data: teamData, isLoading: loading } = useTeamInsights(repositoryId, branchName);
+    const { data: teamData, isLoading: loading } = useTeamInsights(repositoryId, branchName, timelineDays);
 
     // Process data with useMemo for performance
     const { contributors, metrics } = useMemo(() => {
@@ -84,7 +85,9 @@ export default function TeamInsights({ repositoryId, branchName }: TeamInsightsP
                     <div className="flex items-center gap-3">
                         <CheckCircle className="h-8 w-8 text-accent" />
                         <div>
-                            <div className="text-xs text-muted-foreground mb-1">Active (7d)</div>
+                            <div className="text-xs text-muted-foreground mb-1">
+                                {timelineDays === 0 ? 'All-time Active' : `Active (${timelineDays}d)`}
+                            </div>
                             <div className="text-3xl font-bold text-accent">
                                 {metrics?.activeContributors || 0}
                             </div>
@@ -202,7 +205,7 @@ export default function TeamInsights({ repositoryId, branchName }: TeamInsightsP
                 <div className="flex items-center gap-3 mb-4">
                     <Sparkles className="h-6 w-6 text-primary" />
                     <h3 className="text-xl font-heading font-bold">Contributor Impact Analysis</h3>
-                    <InfoTooltip text="Visualizes contributor activity by plotting commits vs lines added. Green dots are active contributors (committed in last 7 days), gray are inactive." />
+                    <InfoTooltip text={`Visualizes contributor activity by plotting commits vs lines added. Green dots are active contributors (committed in the selected timeframe), gray are inactive.`} />
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">
                     Commits vs Lines Changed (bubble size = impact score)
@@ -254,7 +257,9 @@ export default function TeamInsights({ repositoryId, branchName }: TeamInsightsP
                 <div className="mt-3 flex gap-4 justify-center text-xs">
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(var(--accent))' }}></div>
-                        <span className="text-muted-foreground">Active (Last 7 days)</span>
+                        <span className="text-muted-foreground">
+                            {timelineDays === 0 ? 'Active (All-time)' : `Active (Last ${timelineDays} days)`}
+                        </span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(var(--muted-foreground))' }}></div>
