@@ -356,7 +356,7 @@ export const api = {
 
     // Users with Repo Access (for @mention autocomplete)
     async getUsersWithRepoAccess(repositoryId: string) {
-        const res = await fetch(`${API_BASE}/api/notes/users/${repositoryId}`);
+        const res = await fetch(`${API_BASE}/repositories/${repositoryId}/users`);
         return handleResponse(res);
     },
 
