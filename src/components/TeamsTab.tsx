@@ -47,9 +47,21 @@ export function TeamsTab({ repositoryId }: TeamsTabProps) {
 
     const userId = user?.id || localStorage.getItem('userId') || '';
 
-    // Use role detection - owners and admins can manage teams
+    // Use role detection - owners and admins can manage all teams
     const { data: userRole } = useUserRole(repositoryId, userId);
-    const canManageTeams = (userRole?.isOwner || userRole?.isAdmin) ?? false;
+    const canManageAllTeams = (userRole?.isOwner || userRole?.isAdmin) ?? false;
+
+    // Check if current user is team leader of a specific team
+    const isTeamLeaderOf = (team: Team) => {
+        return team.members.some(
+            m => m.userId === userId && m.role === 'team_leader'
+        );
+    };
+
+    // Check if user can manage a specific team (admin/owner OR team leader of that team)
+    const canManageTeam = (team: Team) => {
+        return canManageAllTeams || isTeamLeaderOf(team);
+    };
 
     const [teams, setTeams] = useState<Team[]>([]);
     const [loading, setLoading] = useState(true);
@@ -248,7 +260,7 @@ export function TeamsTab({ repositoryId }: TeamsTabProps) {
                         Organize contributors into teams with designated leaders
                     </p>
                 </div>
-                {canManageTeams && (
+                {canManageAllTeams && (
                     <Button onClick={() => setCreateTeamOpen(true)} className="gap-2">
                         <Plus className="h-4 w-4" />
                         Create Team
@@ -256,8 +268,8 @@ export function TeamsTab({ repositoryId }: TeamsTabProps) {
                 )}
             </div>
 
-            {/* Access Notice */}
-            {!canManageTeams && teams.length === 0 && (
+            {/* Access Notice - show only if user has no management capability */}
+            {!canManageAllTeams && teams.length === 0 && !teams.some(t => isTeamLeaderOf(t)) && (
                 <Card>
                     <CardContent className="py-12 text-center">
                         <Shield className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -270,7 +282,7 @@ export function TeamsTab({ repositoryId }: TeamsTabProps) {
             )}
 
             {/* Teams List */}
-            {teams.length === 0 && canManageTeams && (
+            {teams.length === 0 && canManageAllTeams && (
                 <Card>
                     <CardContent className="py-12 text-center">
                         <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -301,7 +313,8 @@ export function TeamsTab({ repositoryId }: TeamsTabProps) {
                                         {team.createdByUsername && ` · Created by ${team.createdByUsername}`}
                                     </CardDescription>
                                 </div>
-                                {canManageTeams && (
+                                {/* Team management buttons - visible to admins OR team leaders */}
+                                {canManageTeam(team) && (
                                     <div className="flex gap-2">
                                         <Button
                                             onClick={() => {
@@ -315,13 +328,16 @@ export function TeamsTab({ repositoryId }: TeamsTabProps) {
                                             <UserPlus className="h-4 w-4" />
                                             Add Member
                                         </Button>
-                                        <Button
-                                            onClick={() => handleDeleteTeam(team.id)}
-                                            variant="destructive"
-                                            size="sm"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
+                                        {/* Only admins/owners can delete teams */}
+                                        {canManageAllTeams && (
+                                            <Button
+                                                onClick={() => handleDeleteTeam(team.id)}
+                                                variant="destructive"
+                                                size="sm"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -361,18 +377,22 @@ export function TeamsTab({ repositoryId }: TeamsTabProps) {
                                                     </Badge>
                                                 </div>
                                             </div>
-                                            {canManageTeams && (
+                                            {/* Member management - visible to admins OR team leaders for non-leader members */}
+                                            {(canManageAllTeams || (isTeamLeaderOf(team) && member.role !== 'team_leader')) && (
                                                 <div className="flex gap-2">
-                                                    <select
-                                                        value={member.role}
-                                                        onChange={(e) =>
-                                                            handleUpdateRole(team.id, member.id, e.target.value as any)
-                                                        }
-                                                        className="px-2 py-1 text-sm border rounded bg-background text-foreground"
-                                                    >
-                                                        <option value="team_leader">Team Leader</option>
-                                                        <option value="contributor">Contributor</option>
-                                                    </select>
+                                                    {/* Role dropdown - only visible to admins/owners */}
+                                                    {canManageAllTeams && (
+                                                        <select
+                                                            value={member.role}
+                                                            onChange={(e) =>
+                                                                handleUpdateRole(team.id, member.id, e.target.value as any)
+                                                            }
+                                                            className="px-2 py-1 text-sm border rounded bg-background text-foreground"
+                                                        >
+                                                            <option value="team_leader">Team Leader</option>
+                                                            <option value="contributor">Contributor</option>
+                                                        </select>
+                                                    )}
                                                     <Button
                                                         onClick={() => handleRemoveMember(team.id, member.id)}
                                                         variant="ghost"
@@ -470,7 +490,10 @@ export function TeamsTab({ repositoryId }: TeamsTabProps) {
                                     className="w-full px-3 py-2 border rounded bg-background text-foreground"
                                 >
                                     <option value="contributor">Contributor</option>
-                                    <option value="team_leader">Team Leader</option>
+                                    {/* Only admins/owners can assign team leader role */}
+                                    {canManageAllTeams && (
+                                        <option value="team_leader">Team Leader</option>
+                                    )}
                                 </select>
                             </div>
                             <div className="flex gap-2 justify-end">

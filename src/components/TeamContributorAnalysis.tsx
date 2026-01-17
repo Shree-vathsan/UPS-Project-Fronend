@@ -29,9 +29,9 @@ export function TeamContributorAnalysis({ repositoryId }: TeamContributorAnalysi
 
     const userId = user?.id || localStorage.getItem('userId') || '';
 
-    // Use role detection - owners and admins can view analytics
+    // Use role detection - owners and admins can view all analytics
     const { data: userRole } = useUserRole(repositoryId, userId);
-    const canViewAnalytics = (userRole?.isOwner || userRole?.isAdmin) ?? false;
+    const canManageAllTeams = (userRole?.isOwner || userRole?.isAdmin) ?? false;
 
     const [teams, setTeams] = useState<Team[]>([]);
     const [selectedTeamId, setSelectedTeamId] = useState<string>('');
@@ -45,6 +45,43 @@ export function TeamContributorAnalysis({ repositoryId }: TeamContributorAnalysi
             fetchTeams();
         }
     }, [repositoryId, userId]);
+
+    // Determine which teams the user is a team leader of
+    const teamsUserLeads = useMemo(() => {
+        return teams.filter(team =>
+            team.members.some(m => m.userId === userId && m.role === 'team_leader')
+        );
+    }, [teams, userId]);
+
+    // Determine which teams the user is a contributor of
+    const teamsUserContributes = useMemo(() => {
+        return teams.filter(team =>
+            team.members.some(m => m.userId === userId && m.role === 'contributor')
+        );
+    }, [teams, userId]);
+
+    // Is the user a regular contributor only (not team leader or admin)?
+    const isContributorOnly = !canManageAllTeams && teamsUserLeads.length === 0 && teamsUserContributes.length > 0;
+
+    // User can view analytics if admin/owner, team leader, OR contributor
+    const canViewAnalytics = canManageAllTeams || teamsUserLeads.length > 0 || teamsUserContributes.length > 0;
+
+    // Teams to show: all for admins, led teams for leaders, contributed teams for contributors
+    const teamsToShow = canManageAllTeams ? teams : (teamsUserLeads.length > 0 ? teamsUserLeads : teamsUserContributes);
+
+    // Auto-select team for non-admins with only one team
+    useEffect(() => {
+        if (!canManageAllTeams && teamsToShow.length === 1 && !selectedTeamId) {
+            setSelectedTeamId(teamsToShow[0].id);
+        }
+    }, [teamsToShow, canManageAllTeams, selectedTeamId]);
+
+    // Auto-select themselves as member for contributors
+    useEffect(() => {
+        if (isContributorOnly && selectedTeamId && !selectedMemberId) {
+            setSelectedMemberId(userId);
+        }
+    }, [isContributorOnly, selectedTeamId, selectedMemberId, userId]);
 
     useEffect(() => {
         if (selectedTeamId) {
@@ -303,23 +340,27 @@ export function TeamContributorAnalysis({ repositoryId }: TeamContributorAnalysi
             <Card>
                 <CardContent className="py-12 text-center">
                     <Award className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <h3 className="font-heading text-lg font-semibold mb-2">Admin Access Required</h3>
+                    <h3 className="font-heading text-lg font-semibold mb-2">Access Required</h3>
                     <p className="text-muted-foreground text-sm">
-                        Only repository owners and admins can view team contribution analytics.
+                        Only repository owners, admins, team leaders, and team members can view contributor analytics.
                     </p>
                 </CardContent>
             </Card>
         );
     }
 
-    if (teams.length === 0) {
+    if (teamsToShow.length === 0) {
         return (
             <Card>
                 <CardContent className="py-12 text-center">
                     <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <h3 className="font-heading text-lg font-semibold mb-2">No Teams Yet</h3>
+                    <h3 className="font-heading text-lg font-semibold mb-2">
+                        {canManageAllTeams ? 'No Teams Yet' : 'No Teams to View'}
+                    </h3>
                     <p className="text-muted-foreground text-sm">
-                        Create teams first to view contribution analytics
+                        {canManageAllTeams
+                            ? 'Create teams first to view contribution analytics'
+                            : 'You are not a member of any teams'}
                     </p>
                 </CardContent>
             </Card>
@@ -345,30 +386,54 @@ export function TeamContributorAnalysis({ repositoryId }: TeamContributorAnalysi
             {/* Selectors */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Select Team & Member</CardTitle>
-                    <CardDescription>Choose a team to analyze, or select an individual member</CardDescription>
+                    <CardTitle>
+                        {isContributorOnly
+                            ? 'Your Contribution Analytics'
+                            : (!canManageAllTeams && teamsToShow.length === 1
+                                ? 'Your Team Analytics'
+                                : 'Select Team & Member')}
+                    </CardTitle>
+                    <CardDescription>
+                        {isContributorOnly
+                            ? 'View your personal contribution statistics'
+                            : (!canManageAllTeams && teamsToShow.length === 1
+                                ? 'Viewing analytics for your team'
+                                : 'Choose a team to analyze, or select an individual member')}
+                    </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Team</label>
-                            <select
-                                value={selectedTeamId}
-                                onChange={(e) => {
-                                    setSelectedTeamId(e.target.value);
-                                    setSelectedMemberId('');
-                                }}
-                                className="w-full px-3 py-2 border rounded bg-background text-foreground"
-                            >
-                                <option value="">Select a team...</option>
-                                {teams.map((team) => (
-                                    <option key={team.id} value={team.id}>
-                                        {team.name} ({team.members.length} members)
-                                    </option>
-                                ))}
-                            </select>
+                            {/* For single-team users, show team name directly */}
+                            {!canManageAllTeams && teamsToShow.length === 1 ? (
+                                <div className="flex items-center gap-2 px-3 py-2 border rounded bg-muted/50">
+                                    <Users className="h-4 w-4 text-primary" />
+                                    <span className="font-medium">{teamsToShow[0].name}</span>
+                                    <span className="text-muted-foreground text-sm">
+                                        ({teamsToShow[0].members.length} members)
+                                    </span>
+                                </div>
+                            ) : (
+                                <select
+                                    value={selectedTeamId}
+                                    onChange={(e) => {
+                                        setSelectedTeamId(e.target.value);
+                                        setSelectedMemberId('');
+                                    }}
+                                    className="w-full px-3 py-2 border rounded bg-background text-foreground"
+                                >
+                                    <option value="">Select a team...</option>
+                                    {teamsToShow.map((team) => (
+                                        <option key={team.id} value={team.id}>
+                                            {team.name} ({team.members.length} members)
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
                         </div>
-                        {selectedTeam && selectedTeam.members.length > 0 && (
+                        {/* Member selector: hidden for contributors */}
+                        {selectedTeam && selectedTeam.members.length > 0 && !isContributorOnly && (
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">Member (Optional)</label>
                                 <select
@@ -383,6 +448,19 @@ export function TeamContributorAnalysis({ repositoryId }: TeamContributorAnalysi
                                         </option>
                                     ))}
                                 </select>
+                            </div>
+                        )}
+                        {/* For contributors, show their name directly */}
+                        {isContributorOnly && selectedTeam && (
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Member</label>
+                                <div className="flex items-center gap-2 px-3 py-2 border rounded bg-muted/50">
+                                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-medium">
+                                        {user?.username?.substring(0, 2).toUpperCase() || 'ME'}
+                                    </div>
+                                    <span className="font-medium">{user?.username || 'You'}</span>
+                                    <Badge variant="secondary">Contributor</Badge>
+                                </div>
                             </div>
                         )}
                     </div>
