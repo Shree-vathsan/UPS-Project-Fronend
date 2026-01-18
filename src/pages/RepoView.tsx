@@ -691,7 +691,7 @@ export default function RepoView({ user: _user }: RepoViewProps) {
 
                 {/* Contributor Analysis Tab */}
                 <TabsContent value="contributor-analysis" className="mt-6">
-                    <TeamContributorAnalysis repositoryId={repositoryId!} />
+                    <TeamContributorAnalysis repositoryId={repositoryId!} timelineDays={analyticsTimeline} />
                 </TabsContent>
             </Tabs>
         </div >

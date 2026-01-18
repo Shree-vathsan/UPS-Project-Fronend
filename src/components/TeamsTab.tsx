@@ -4,6 +4,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { API_BASE_URL } from '../config';
 import { useUserRole } from '../hooks/useRoleManagement';
 
@@ -77,6 +88,10 @@ export function TeamsTab({ repositoryId }: TeamsTabProps) {
     const [selectedUserId, setSelectedUserId] = useState('');
     const [selectedRole, setSelectedRole] = useState<'team_leader' | 'contributor'>('contributor');
 
+    // Delete confirmation states
+    const [deleteTeamConfirm, setDeleteTeamConfirm] = useState<Team | null>(null);
+    const [removeMemberConfirm, setRemoveMemberConfirm] = useState<{ teamId: string; memberId: string; memberName: string } | null>(null);
+
     useEffect(() => {
         if (repositoryId && userId) {
             fetchTeams();
@@ -141,7 +156,7 @@ export function TeamsTab({ repositoryId }: TeamsTabProps) {
     };
 
     const handleDeleteTeam = async (teamId: string) => {
-        if (!confirm('Are you sure you want to delete this team?') || !user) return;
+        if (!user) return;
 
         try {
             const response = await fetch(
@@ -161,6 +176,8 @@ export function TeamsTab({ repositoryId }: TeamsTabProps) {
         } catch (error) {
             console.error('Error deleting team:', error);
             alert('Failed to delete team');
+        } finally {
+            setDeleteTeamConfirm(null);
         }
     };
 
@@ -197,7 +214,7 @@ export function TeamsTab({ repositoryId }: TeamsTabProps) {
     };
 
     const handleRemoveMember = async (teamId: string, memberId: string) => {
-        if (!confirm('Are you sure you want to remove this member?') || !user) return;
+        if (!user) return;
 
         try {
             const response = await fetch(
@@ -217,6 +234,8 @@ export function TeamsTab({ repositoryId }: TeamsTabProps) {
         } catch (error) {
             console.error('Error removing member:', error);
             alert('Failed to remove member');
+        } finally {
+            setRemoveMemberConfirm(null);
         }
     };
 
@@ -247,7 +266,57 @@ export function TeamsTab({ repositoryId }: TeamsTabProps) {
     };
 
     if (loading) {
-        return <div className="text-center py-8">Loading teams...</div>;
+        return (
+            <div className="space-y-6">
+                {/* Header Skeleton */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <Skeleton className="h-8 w-32 mb-2" />
+                        <Skeleton className="h-4 w-64" />
+                    </div>
+                    <Skeleton className="h-10 w-32" />
+                </div>
+
+                {/* Team Cards Skeleton */}
+                <div className="grid gap-4">
+                    {[1, 2].map((i) => (
+                        <Card key={i}>
+                            <CardHeader>
+                                <div className="flex items-start justify-between">
+                                    <div>
+                                        <Skeleton className="h-6 w-40 mb-2" />
+                                        <Skeleton className="h-4 w-48" />
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Skeleton className="h-9 w-28" />
+                                        <Skeleton className="h-9 w-9" />
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-2">
+                                    {[1, 2, 3].map((j) => (
+                                        <div key={j} className="flex items-center justify-between p-3 rounded-lg border">
+                                            <div className="flex items-center gap-3">
+                                                <Skeleton className="h-8 w-8 rounded-full" />
+                                                <div>
+                                                    <Skeleton className="h-4 w-32 mb-1" />
+                                                    <Skeleton className="h-3 w-20" />
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <Skeleton className="h-8 w-24" />
+                                                <Skeleton className="h-8 w-8" />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            </div>
+        );
     }
 
     return (
@@ -331,7 +400,7 @@ export function TeamsTab({ repositoryId }: TeamsTabProps) {
                                         {/* Only admins/owners can delete teams */}
                                         {canManageAllTeams && (
                                             <Button
-                                                onClick={() => handleDeleteTeam(team.id)}
+                                                onClick={() => setDeleteTeamConfirm(team)}
                                                 variant="destructive"
                                                 size="sm"
                                             >
@@ -394,9 +463,10 @@ export function TeamsTab({ repositoryId }: TeamsTabProps) {
                                                         </select>
                                                     )}
                                                     <Button
-                                                        onClick={() => handleRemoveMember(team.id, member.id)}
+                                                        onClick={() => setRemoveMemberConfirm({ teamId: team.id, memberId: member.id, memberName: member.username })}
                                                         variant="ghost"
                                                         size="sm"
+                                                        className="hover:bg-destructive hover:text-destructive-foreground"
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
@@ -508,6 +578,48 @@ export function TeamsTab({ repositoryId }: TeamsTabProps) {
                     </Card>
                 </div>
             )}
+
+            {/* Delete Team Confirmation Dialog */}
+            <AlertDialog open={!!deleteTeamConfirm} onOpenChange={(open) => !open && setDeleteTeamConfirm(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Team</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete the team "{deleteTeamConfirm?.name}"? This action cannot be undone and all team members will be removed.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => deleteTeamConfirm && handleDeleteTeam(deleteTeamConfirm.id)}
+                            className="bg-red-600 text-white hover:bg-red-700"
+                        >
+                            Delete Team
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Remove Member Confirmation Dialog */}
+            <AlertDialog open={!!removeMemberConfirm} onOpenChange={(open) => !open && setRemoveMemberConfirm(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Remove Member</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to remove "{removeMemberConfirm?.memberName}" from this team?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => removeMemberConfirm && handleRemoveMember(removeMemberConfirm.teamId, removeMemberConfirm.memberId)}
+                            className="bg-red-600 text-white hover:bg-red-700"
+                        >
+                            Remove Member
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

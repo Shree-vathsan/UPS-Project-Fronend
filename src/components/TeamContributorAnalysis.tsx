@@ -1,13 +1,15 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { TrendingUp, Users, GitCommit, FileCode, Award, Clock, Download, AlertTriangle, RefreshCw, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { API_BASE_URL } from '../config';
 import { useUserRole } from '../hooks/useRoleManagement';
 import { api } from '../utils/api';
 
 interface TeamContributorAnalysisProps {
     repositoryId: string;
+    timelineDays?: 0 | 7 | 30;  // 0 = Lifetime, 7 = Past 7 Days, 30 = Past 30 Days
 }
 
 interface Team {
@@ -21,7 +23,7 @@ interface Team {
     }>;
 }
 
-export function TeamContributorAnalysis({ repositoryId }: TeamContributorAnalysisProps) {
+export function TeamContributorAnalysis({ repositoryId, timelineDays = 7 }: TeamContributorAnalysisProps) {
     // Memoize user to prevent infinite loops
     const user = useMemo(() => {
         const stored = localStorage.getItem('user');
@@ -42,6 +44,21 @@ export function TeamContributorAnalysis({ repositoryId }: TeamContributorAnalysi
     const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
     useEffect(() => {
+        const fetchTeams = async () => {
+            try {
+                const response = await fetch(
+                    `${API_BASE_URL}/repositories/${repositoryId}/teams?userId=${userId}`,
+                    { credentials: 'include' }
+                );
+                const data = await response.json();
+                setTeams(data.teams || []);
+            } catch (error) {
+                console.error('Error fetching teams:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
         if (repositoryId && userId) {
             fetchTeams();
         }
@@ -85,57 +102,44 @@ export function TeamContributorAnalysis({ repositoryId }: TeamContributorAnalysi
     }, [isContributorOnly, selectedTeamId, selectedMemberId, userId]);
 
     useEffect(() => {
-        if (selectedTeamId) {
-            fetchAnalytics();
-        } else {
-            setAnalytics(null);
-        }
-    }, [selectedTeamId, selectedMemberId]);
-
-    const fetchTeams = async () => {
-        try {
-            const response = await fetch(
-                `${API_BASE_URL}/repositories/${repositoryId}/teams?userId=${userId}`,
-                { credentials: 'include' }
-            );
-            const data = await response.json();
-            setTeams(data.teams || []);
-        } catch (error) {
-            console.error('Error fetching teams:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchAnalytics = async () => {
-        if (!selectedTeamId) return;
-
-        setAnalyticsLoading(true);
-        try {
-            const url = selectedMemberId
-                ? `${API_BASE_URL}/repositories/${repositoryId}/teams/${selectedTeamId}/analytics?memberId=${selectedMemberId}`
-                : `${API_BASE_URL}/repositories/${repositoryId}/teams/${selectedTeamId}/analytics`;
-
-            const response = await fetch(url, { credentials: 'include' });
-
-            if (!response.ok) {
-                console.error('API error:', response.status, response.statusText);
-                const text = await response.text();
-                console.error('Error response:', text);
+        const fetchAnalyticsData = async () => {
+            if (!selectedTeamId) {
                 setAnalytics(null);
                 return;
             }
 
-            const data = await response.json();
-            console.log('Analytics data:', data);
-            setAnalytics(data);
-        } catch (error) {
-            console.error('Error fetching analytics:', error);
-            setAnalytics(null);
-        } finally {
-            setAnalyticsLoading(false);
-        }
-    };
+            setAnalyticsLoading(true);
+            try {
+                let url = selectedMemberId
+                    ? `${API_BASE_URL}/repositories/${repositoryId}/teams/${selectedTeamId}/analytics?memberId=${selectedMemberId}`
+                    : `${API_BASE_URL}/repositories/${repositoryId}/teams/${selectedTeamId}/analytics`;
+
+                // Add timelineDays parameter
+                url += selectedMemberId ? `&timelineDays=${timelineDays}` : `?timelineDays=${timelineDays}`;
+
+                const response = await fetch(url, { credentials: 'include' });
+
+                if (!response.ok) {
+                    console.error('API error:', response.status, response.statusText);
+                    const text = await response.text();
+                    console.error('Error response:', text);
+                    setAnalytics(null);
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('Analytics data:', data);
+                setAnalytics(data);
+            } catch (error) {
+                console.error('Error fetching analytics:', error);
+                setAnalytics(null);
+            } finally {
+                setAnalyticsLoading(false);
+            }
+        };
+
+        fetchAnalyticsData();
+    }, [selectedTeamId, selectedMemberId, timelineDays, repositoryId]);
 
     const selectedTeam = teams.find(t => t.id === selectedTeamId);
     const selectedMember = selectedTeam?.members.find(m => m.userId === selectedMemberId);
@@ -333,7 +337,71 @@ export function TeamContributorAnalysis({ repositoryId }: TeamContributorAnalysi
     };
 
     if (loading && teams.length === 0) {
-        return <div className="text-center py-8">Loading...</div>;
+        return (
+            <div className="space-y-6">
+                {/* Header Skeleton */}
+                <div className="flex items-center justify-between">
+                    <Skeleton className="h-8 w-48" />
+                    <Skeleton className="h-8 w-16" />
+                </div>
+
+                {/* Selector Card Skeleton */}
+                <Card>
+                    <CardHeader>
+                        <Skeleton className="h-6 w-40 mb-2" />
+                        <Skeleton className="h-4 w-64" />
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Skeleton className="h-4 w-16" />
+                                <Skeleton className="h-10 w-full" />
+                            </div>
+                            <div className="space-y-2">
+                                <Skeleton className="h-4 w-20" />
+                                <Skeleton className="h-10 w-full" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Stats Cards Skeleton */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[1, 2, 3, 4].map((i) => (
+                        <Card key={i}>
+                            <CardContent className="pt-6">
+                                <Skeleton className="h-4 w-20 mb-2" />
+                                <Skeleton className="h-8 w-16" />
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+
+                {/* Member Contributions Skeleton */}
+                <Card>
+                    <CardHeader>
+                        <Skeleton className="h-6 w-48 mb-2" />
+                        <Skeleton className="h-4 w-72" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-3">
+                            {[1, 2, 3].map((i) => (
+                                <div key={i} className="flex items-center justify-between p-3 rounded-lg border">
+                                    <div className="flex items-center gap-3">
+                                        <Skeleton className="h-10 w-10 rounded-full" />
+                                        <div>
+                                            <Skeleton className="h-4 w-32 mb-1" />
+                                            <Skeleton className="h-3 w-48" />
+                                        </div>
+                                    </div>
+                                    <Skeleton className="h-4 w-24" />
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        );
     }
 
     if (!canViewAnalytics) {
@@ -512,6 +580,7 @@ export function TeamContributorAnalysis({ repositoryId }: TeamContributorAnalysi
                     canManageAllTeams={canManageAllTeams}
                     isTeamLeader={teamsUserLeads.length > 0}
                     isContributorOnly={isContributorOnly}
+                    timelineDays={timelineDays}
                 />
             )}
 
@@ -530,7 +599,8 @@ function TeamAnalyticsView({
     username,
     canManageAllTeams,
     isTeamLeader,
-    isContributorOnly
+    isContributorOnly,
+    timelineDays
 }: {
     analytics: any;
     repositoryId: string;
@@ -539,6 +609,7 @@ function TeamAnalyticsView({
     canManageAllTeams: boolean;
     isTeamLeader: boolean;
     isContributorOnly: boolean;
+    timelineDays: 0 | 7 | 30;
 }) {
     const [negativeScores, setNegativeScores] = useState<any>(null);
     const [loadingScores, setLoadingScores] = useState(false);
@@ -554,12 +625,12 @@ function TeamAnalyticsView({
 
     useEffect(() => {
         fetchNegativeScores();
-    }, [repositoryId]);
+    }, [repositoryId, timelineDays]);
 
     const fetchNegativeScores = async () => {
         setLoadingScores(true);
         try {
-            const data = await api.getNegativeScores(repositoryId);
+            const data = await api.getNegativeScores(repositoryId, timelineDays);
             setNegativeScores(data);
         } catch (error) {
             console.error('Error fetching negative scores:', error);

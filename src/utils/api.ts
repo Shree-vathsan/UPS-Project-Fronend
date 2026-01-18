@@ -553,8 +553,8 @@ export const api = {
     // CONTRIBUTOR NEGATIVE SCORES
     // ==========================================
 
-    async getNegativeScores(repositoryId: string) {
-        const res = await fetch(`${API_BASE}/repositories/${repositoryId}/negative-scores`);
+    async getNegativeScores(repositoryId: string, timelineDays: number = 0) {
+        const res = await fetch(`${API_BASE}/repositories/${repositoryId}/negative-scores?timelineDays=${timelineDays}`);
         return handleResponse(res);
     },
 
