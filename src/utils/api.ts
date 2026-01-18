@@ -547,5 +547,26 @@ export const api = {
             method: 'DELETE'
         });
         return handleResponse(res);
+    },
+
+    // ==========================================
+    // CONTRIBUTOR NEGATIVE SCORES
+    // ==========================================
+
+    async getNegativeScores(repositoryId: string) {
+        const res = await fetch(`${API_BASE}/repositories/${repositoryId}/negative-scores`);
+        return handleResponse(res);
+    },
+
+    async getContributorEvents(repositoryId: string, contributorName: string) {
+        const res = await fetch(`${API_BASE}/repositories/${repositoryId}/negative-scores/${encodeURIComponent(contributorName)}/events`);
+        return handleResponse(res);
+    },
+
+    async calculateNegativeScores(repositoryId: string, userId: string) {
+        const res = await fetch(`${API_BASE}/repositories/${repositoryId}/negative-scores/calculate?userId=${userId}`, {
+            method: 'POST'
+        });
+        return handleResponse(res);
     }
 };
