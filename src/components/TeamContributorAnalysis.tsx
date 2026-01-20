@@ -1099,7 +1099,7 @@ function TeamAnalyticsView({
                             {/* Modal Footer */}
                             <div className="px-6 py-4 border-t bg-muted/30 text-sm text-muted-foreground shrink-0">
                                 <p>
-                                    Events shown above represent instances where this contributor's code was significantly altered by another team member within 60 days.
+                                    Events shown above represent instances where this contributor's code was significantly altered by another team member within {timelineDays === 0 ? 60 : timelineDays} days.
                                 </p>
                             </div>
                         </div>
