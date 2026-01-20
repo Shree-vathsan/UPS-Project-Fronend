@@ -558,8 +558,8 @@ export const api = {
         return handleResponse(res);
     },
 
-    async getContributorEvents(repositoryId: string, contributorName: string) {
-        const res = await fetch(`${API_BASE}/repositories/${repositoryId}/negative-scores/${encodeURIComponent(contributorName)}/events`);
+    async getContributorEvents(repositoryId: string, contributorName: string, timelineDays: number = 0) {
+        const res = await fetch(`${API_BASE}/repositories/${repositoryId}/negative-scores/${encodeURIComponent(contributorName)}/events?timelineDays=${timelineDays}`);
         return handleResponse(res);
     },
 

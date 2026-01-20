@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { TrendingUp, Users, GitCommit, FileCode, Award, Clock, Download, AlertTriangle, RefreshCw, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { TrendingUp, Users, GitCommit, FileCode, Award, Clock, Download, AlertTriangle, RefreshCw, X, UserMinus } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -283,6 +284,48 @@ export function TeamContributorAnalysis({ repositoryId, timelineDays = 7 }: Team
                     startY: yPos,
                     head: [['Member', 'Commits', 'Files', 'Lines', 'Status']],
                     body: contributorsData,
+                    theme: 'striped',
+                    headStyles: { fillColor: primaryColor },
+                    margin: { left: 14, right: 14 },
+                });
+
+                yPos = (doc as any).lastAutoTable.finalY + 15;
+            }
+
+            // Inactive Contributors Section
+            const inactiveMembers = analytics.memberContributions?.filter((m: any) => !m.isActive) || [];
+            if (inactiveMembers.length > 0 && yPos < 220) {
+                // Check if we need a new page
+                if (yPos > 250) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+
+                const warningColor: [number, number, number] = [245, 158, 11]; // Amber
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...textColor);
+                doc.text('Inactive Contributors', 14, yPos);
+                yPos += 4;
+
+                const timelineLabel = timelineDays === 0 ? 'all time' : `past ${timelineDays} days`;
+                doc.setFontSize(9);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(...mutedColor);
+                doc.text(`Team members with no commits in the ${timelineLabel}`, 14, yPos + 4);
+                yPos += 12;
+
+                const inactiveData = inactiveMembers.map((m: any) => [
+                    m.username || 'Unknown',
+                    m.role === 'team_leader' ? 'Team Leader' : 'Contributor',
+                    String(m.totalCommits || 0),
+                    m.lastCommitDate ? new Date(m.lastCommitDate).toLocaleDateString() : 'Never'
+                ]);
+
+                autoTable(doc, {
+                    startY: yPos,
+                    head: [['Member', 'Role', 'Total Commits', 'Last Active']],
+                    body: inactiveData,
                     theme: 'striped',
                     headStyles: { fillColor: primaryColor },
                     margin: { left: 14, right: 14 },
@@ -680,7 +723,7 @@ function TeamAnalyticsView({
         setSelectedContributor(contributorName);
         setLoadingEvents(true);
         try {
-            const data = await api.getContributorEvents(repositoryId, contributorName);
+            const data = await api.getContributorEvents(repositoryId, contributorName, timelineDays);
             setContributorEvents(data);
         } catch (error) {
             console.error('Error fetching events:', error);
@@ -694,6 +737,18 @@ function TeamAnalyticsView({
         setSelectedContributor(null);
         setContributorEvents(null);
     };
+
+    // Prevent body scroll when modal is open
+    useEffect(() => {
+        if (selectedContributor) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [selectedContributor]);
 
     return (
         <div className="space-y-6">
@@ -800,6 +855,71 @@ function TeamAnalyticsView({
                 </CardContent>
             </Card>
 
+            {/* Inactive Contributors Section - Only visible to admins/owners/team leaders */}
+            {!isContributorOnly && (() => {
+                const inactiveMembers = analytics.memberContributions?.filter((m: any) => !m.isActive) || [];
+                const timelineLabel = timelineDays === 0 ? 'all time' : `${timelineDays} days`;
+
+                if (inactiveMembers.length === 0) return null;
+
+                return (
+                    <Card className="border-amber-500/30 bg-amber-500/5">
+                        <CardHeader>
+                            <div className="flex items-center gap-2">
+                                <UserMinus className="h-5 w-5 text-amber-500" />
+                                <CardTitle className="text-amber-600">Inactive Contributors</CardTitle>
+                            </div>
+                            <CardDescription>
+                                Team members with no commits in the past {timelineLabel}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-3">
+                                {inactiveMembers.map((member: any) => (
+                                    <div key={member.userId} className="flex items-center justify-between p-3 rounded-lg border border-amber-500/20 bg-amber-500/5">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-10 w-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-600 font-medium">
+                                                {member.username?.substring(0, 2).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-medium">{member.username}</span>
+                                                    <Badge variant={member.role === 'team_leader' ? 'default' : 'secondary'}>
+                                                        {member.role === 'team_leader' ? 'Team Leader' : 'Contributor'}
+                                                    </Badge>
+                                                    <Badge variant="warning" className="text-xs">Inactive</Badge>
+                                                </div>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {member.totalCommits} total commits · {member.filesChanged} files
+                                                    {member.lastCommitDate && (
+                                                        <span> · Last commit: {new Date(member.lastCommitDate).toLocaleDateString()}</span>
+                                                    )}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right text-sm">
+                                            {member.lastCommitDate ? (
+                                                <div>
+                                                    <span className="text-muted-foreground">Last active</span>
+                                                    <p className="font-medium text-amber-600">{new Date(member.lastCommitDate).toLocaleDateString()}</p>
+                                                </div>
+                                            ) : (
+                                                <span className="text-amber-500 font-medium">No commits recorded</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <p className="mt-4 text-xs text-muted-foreground">
+                                {canManageAllTeams
+                                    ? 'Showing inactive members across all teams you manage.'
+                                    : 'Showing inactive members from your team.'}
+                            </p>
+                        </CardContent>
+                    </Card>
+                );
+            })()}
+
             {/* Hotspots */}
             <Card>
                 <CardHeader>
@@ -898,93 +1018,96 @@ function TeamAnalyticsView({
             </Card>
 
             {/* Event Details Modal */}
-            {selectedContributor && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-card border rounded-xl shadow-2xl w-full max-w-4xl max-h-[80vh] overflow-hidden">
-                        {/* Modal Header */}
-                        <div className="flex items-center justify-between px-6 py-4 border-b bg-muted/30">
-                            <div>
-                                <h3 className="text-lg font-semibold">
-                                    Instability Events for {selectedContributor}
-                                </h3>
-                                <p className="text-sm text-muted-foreground">
-                                    {loadingEvents ? 'Loading...' : `${contributorEvents?.eventCount || 0} events found`}
+            {
+                selectedContributor && createPortal(
+                    <div className="fixed inset-0 w-screen h-screen backdrop-blur-md z-[9999] flex items-center justify-center p-4">
+                        <div className="bg-card border rounded-xl shadow-2xl w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+                            {/* Modal Header */}
+                            <div className="flex items-center justify-between px-6 py-4 border-b bg-muted/30 shrink-0">
+                                <div>
+                                    <h3 className="text-lg font-semibold">
+                                        Instability Events for {selectedContributor}
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        {loadingEvents ? 'Loading...' : `${contributorEvents?.eventCount || 0} events found`}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={closeModal}
+                                    className="p-2 hover:bg-muted rounded-lg transition-colors"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+
+                            {/* Modal Content */}
+                            <div className="p-6 overflow-auto flex-1 min-h-0">
+                                {loadingEvents ? (
+                                    <div className="space-y-3">
+                                        {[1, 2, 3].map(i => (
+                                            <div key={i} className="h-16 bg-muted rounded animate-pulse" />
+                                        ))}
+                                    </div>
+                                ) : contributorEvents?.events?.length > 0 ? (
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b text-left">
+                                                <th className="pb-3 font-medium">File</th>
+                                                <th className="pb-3 font-medium">Replaced By</th>
+                                                <th className="pb-3 font-medium text-center">Days After</th>
+                                                <th className="pb-3 font-medium text-center">Lines</th>
+                                                <th className="pb-3 font-medium text-center">Purpose</th>
+                                                <th className="pb-3 font-medium text-right">Score</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {contributorEvents.events.map((event: any) => (
+                                                <tr key={event.id} className="border-b last:border-0 hover:bg-muted/50">
+                                                    <td className="py-3">
+                                                        <code className="text-xs bg-muted px-2 py-1 rounded">
+                                                            {event.filePath?.split('/').pop() || event.filePath}
+                                                        </code>
+                                                    </td>
+                                                    <td className="py-3 text-muted-foreground">{event.replacedBy}</td>
+                                                    <td className="py-3 text-center">
+                                                        <span className={event.daysAfterOriginal <= 7 ? 'text-red-500' : 'text-muted-foreground'}>
+                                                            {event.daysAfterOriginal}d
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 text-center text-muted-foreground">{event.linesChanged}</td>
+                                                    <td className="py-3 text-center">
+                                                        {event.commitSignal > 1.5 ? (
+                                                            <Badge variant="destructive" className="text-xs">bug fix</Badge>
+                                                        ) : event.commitSignal > 1.0 ? (
+                                                            <Badge variant="warning" className="text-xs">update</Badge>
+                                                        ) : (
+                                                            <Badge variant="secondary" className="text-xs">general</Badge>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-3 text-right font-mono text-amber-600">{event.eventScore.toFixed(3)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                ) : (
+                                    <div className="text-center py-8 text-muted-foreground">
+                                        No instability events recorded for this contributor.
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="px-6 py-4 border-t bg-muted/30 text-sm text-muted-foreground shrink-0">
+                                <p>
+                                    Events shown above represent instances where this contributor's code was significantly altered by another team member within 60 days.
                                 </p>
                             </div>
-                            <button
-                                onClick={closeModal}
-                                className="p-2 hover:bg-muted rounded-lg transition-colors"
-                            >
-                                <X className="h-5 w-5" />
-                            </button>
                         </div>
-
-                        {/* Modal Content */}
-                        <div className="p-6 overflow-auto max-h-[60vh]">
-                            {loadingEvents ? (
-                                <div className="space-y-3">
-                                    {[1, 2, 3].map(i => (
-                                        <div key={i} className="h-16 bg-muted rounded animate-pulse" />
-                                    ))}
-                                </div>
-                            ) : contributorEvents?.events?.length > 0 ? (
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b text-left">
-                                            <th className="pb-3 font-medium">File</th>
-                                            <th className="pb-3 font-medium">Replaced By</th>
-                                            <th className="pb-3 font-medium text-center">Days After</th>
-                                            <th className="pb-3 font-medium text-center">Lines</th>
-                                            <th className="pb-3 font-medium text-center">Purpose</th>
-                                            <th className="pb-3 font-medium text-right">Score</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {contributorEvents.events.map((event: any) => (
-                                            <tr key={event.id} className="border-b last:border-0 hover:bg-muted/50">
-                                                <td className="py-3">
-                                                    <code className="text-xs bg-muted px-2 py-1 rounded">
-                                                        {event.filePath?.split('/').pop() || event.filePath}
-                                                    </code>
-                                                </td>
-                                                <td className="py-3 text-muted-foreground">{event.replacedBy}</td>
-                                                <td className="py-3 text-center">
-                                                    <span className={event.daysAfterOriginal <= 7 ? 'text-red-500' : 'text-muted-foreground'}>
-                                                        {event.daysAfterOriginal}d
-                                                    </span>
-                                                </td>
-                                                <td className="py-3 text-center text-muted-foreground">{event.linesChanged}</td>
-                                                <td className="py-3 text-center">
-                                                    {event.commitSignal > 1.5 ? (
-                                                        <Badge variant="destructive" className="text-xs">bug fix</Badge>
-                                                    ) : event.commitSignal > 1.0 ? (
-                                                        <Badge variant="warning" className="text-xs">update</Badge>
-                                                    ) : (
-                                                        <Badge variant="secondary" className="text-xs">general</Badge>
-                                                    )}
-                                                </td>
-                                                <td className="py-3 text-right font-mono text-amber-600">{event.eventScore.toFixed(3)}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            ) : (
-                                <div className="text-center py-8 text-muted-foreground">
-                                    No instability events recorded for this contributor.
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Modal Footer */}
-                        <div className="px-6 py-4 border-t bg-muted/30 text-sm text-muted-foreground">
-                            <p>
-                                Events shown above represent instances where this contributor's code was significantly altered by another team member within 60 days.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
+                    </div>,
+                    document.body
+                )
+            }
+        </div >
     );
 }
 
@@ -1008,6 +1131,57 @@ function IndividualAnalyticsView({ analytics }: { analytics: any }) {
                     </div>
                 </CardHeader>
             </Card>
+
+            {/* Personal Inactivity Alert - Show if user hasn't committed in the past week */}
+            {(() => {
+                if (!analytics.lastCommitDate) {
+                    return (
+                        <Card className="border-amber-500/50 bg-amber-500/10">
+                            <CardContent className="py-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-10 w-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                                        <UserMinus className="h-5 w-5 text-amber-500" />
+                                    </div>
+                                    <div>
+                                        <p className="font-medium text-amber-600">No commits recorded</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            You haven't made any commits to this repository yet. Start contributing to see your activity here!
+                                        </p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    );
+                }
+
+                const lastCommit = new Date(analytics.lastCommitDate);
+                const now = new Date();
+                const daysSinceLastCommit = Math.floor((now.getTime() - lastCommit.getTime()) / (1000 * 60 * 60 * 24));
+
+                if (daysSinceLastCommit >= 7) {
+                    return (
+                        <Card className="border-amber-500/50 bg-amber-500/10">
+                            <CardContent className="py-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-10 w-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                                        <AlertTriangle className="h-5 w-5 text-amber-500" />
+                                    </div>
+                                    <div>
+                                        <p className="font-medium text-amber-600">
+                                            You've been inactive for {daysSinceLastCommit} day{daysSinceLastCommit !== 1 ? 's' : ''}
+                                        </p>
+                                        <p className="text-sm text-muted-foreground">
+                                            Your last commit was on {lastCommit.toLocaleDateString()}. Consider contributing to keep your activity consistent!
+                                        </p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    );
+                }
+
+                return null;
+            })()}
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
