@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { GitCommit, GitPullRequest, FolderTree, BarChart, RefreshCw, GitBranch, Clock, ArrowRight, StickyNote, Users, TrendingUp, Shield } from 'lucide-react';
+import { GitCommit, GitPullRequest, FolderTree, BarChart, RefreshCw, GitBranch, Clock, ArrowRight, StickyNote, Users, TrendingUp, Shield, Briefcase } from 'lucide-react';
 import FileTree from '../components/FileTree';
 import BackButton from '../components/BackButton';
 import RepositoryAnalytics from '../components/RepositoryAnalytics';
@@ -9,6 +9,7 @@ import { RepositoryNotesTab } from '../components/RepositoryNotesTab';
 import { TeamsTab } from '../components/TeamsTab';
 import { TeamContributorAnalysis } from '../components/TeamContributorAnalysis';
 import { AdminsTab } from '../components/AdminsTab';
+import { AzureDevOpsTab } from '../components/AzureDevOpsTab';
 import Pagination from '../components/Pagination';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,15 +47,15 @@ export default function RepoView({ user: _user }: RepoViewProps) {
     const isOwner = userRole?.isOwner ?? false;
 
     // Get initial tab from URL or default to 'commits'
-    const getInitialTab = (): 'commits' | 'prs' | 'files' | 'analytics' | 'notes' | 'teams' | 'admins' | 'contributor-analysis' => {
+    const getInitialTab = (): 'commits' | 'prs' | 'files' | 'analytics' | 'notes' | 'teams' | 'admins' | 'contributor-analysis' | 'ado' => {
         const tabParam = searchParams.get('tab');
-        if (tabParam === 'prs' || tabParam === 'files' || tabParam === 'analytics' || tabParam === 'commits' || tabParam === 'notes' || tabParam === 'teams' || tabParam === 'admins' || tabParam === 'contributor-analysis') {
+        if (tabParam === 'prs' || tabParam === 'files' || tabParam === 'analytics' || tabParam === 'commits' || tabParam === 'notes' || tabParam === 'teams' || tabParam === 'admins' || tabParam === 'contributor-analysis' || tabParam === 'ado') {
             return tabParam as any;
         }
         return 'commits';
     };
 
-    const [activeTab, setActiveTab] = useState<'commits' | 'prs' | 'files' | 'analytics' | 'notes' | 'teams' | 'admins' | 'contributor-analysis'>(getInitialTab());
+    const [activeTab, setActiveTab] = useState<'commits' | 'prs' | 'files' | 'analytics' | 'notes' | 'teams' | 'admins' | 'contributor-analysis' | 'ado'>(getInitialTab());
 
     // Get initial branch from URL or default to 'main'
     const getInitialBranch = (): string => {
@@ -402,7 +403,7 @@ export default function RepoView({ user: _user }: RepoViewProps) {
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={(value) => {
-                const newTab = value as 'commits' | 'prs' | 'files' | 'analytics' | 'notes' | 'teams' | 'admins' | 'contributor-analysis';
+                const newTab = value as 'commits' | 'prs' | 'files' | 'analytics' | 'notes' | 'teams' | 'admins' | 'contributor-analysis' | 'ado';
                 setActiveTab(newTab);
                 const newParams = new URLSearchParams(searchParams);
                 newParams.set('tab', newTab);
@@ -410,7 +411,7 @@ export default function RepoView({ user: _user }: RepoViewProps) {
             }}>
                 {/* Tabs Row with Timeline Selector */}
                 <div className="flex items-center gap-4 flex-wrap">
-                    <TabsList className={`grid ${isOwner ? 'grid-cols-8' : 'grid-cols-7'}`}>
+                    <TabsList className={`grid ${isOwner ? 'grid-cols-9' : 'grid-cols-8'}`}>
                         <TabsTrigger value="commits" className="gap-2">
                             <GitCommit className="h-4 w-4" />
                             <span className="hidden sm:inline">Commits</span>
@@ -426,6 +427,10 @@ export default function RepoView({ user: _user }: RepoViewProps) {
                         <TabsTrigger value="analytics" className="gap-2">
                             <BarChart className="h-4 w-4" />
                             <span className="hidden sm:inline">Analytics</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="ado" className="gap-2">
+                            <Briefcase className="h-4 w-4" />
+                            <span className="hidden sm:inline">ADO</span>
                         </TabsTrigger>
                         <TabsTrigger value="notes" className="gap-2">
                             <StickyNote className="h-4 w-4" />
@@ -666,6 +671,11 @@ export default function RepoView({ user: _user }: RepoViewProps) {
                         <h2 className="font-heading text-2xl font-semibold mb-6">Team Insights</h2>
                         <TeamInsights repositoryId={repositoryId!} branchName={selectedBranch} timelineDays={analyticsTimeline} />
                     </div>
+                </TabsContent>
+
+                {/* Azure DevOps Tab */}
+                <TabsContent value="ado" className="mt-6">
+                    <AzureDevOpsTab repositoryName={repository.name} />
                 </TabsContent>
 
                 {/* Notes Tab */}
