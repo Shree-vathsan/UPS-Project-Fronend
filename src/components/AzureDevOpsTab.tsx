@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { azureDevOpsApi } from '../lib/azureDevOpsApi';
 import { AzureDevOpsProject, AzureDevOpsWorkItem } from '../lib/azureDevOpsTypes';
+import DeveloperInactivityPanel from './DeveloperInactivityPanel';
 
 interface AzureDevOpsTabProps {
     // Props interface for future extensions
@@ -213,6 +214,9 @@ export function AzureDevOpsTab({ }: AzureDevOpsTabProps) {
             {/* Work Items Section */}
             {selectedProject && (
                 <>
+                    {/* Developer Inactivity Monitor */}
+                    <DeveloperInactivityPanel projectId={selectedProject.id} />
+
                     {/* Header */}
                     <div className="flex items-center justify-between">
                         <div>

@@ -97,3 +97,30 @@ export interface AzureDevOpsWorkItem {
     url: string;
     webUrl?: string;
 }
+
+// Developer Inactivity Detection Types
+
+export interface DeveloperActivityProfile {
+    developerName: string;
+    avatarUrl?: string;
+    inactivityScore: number;           // 0-100
+    inactivityLevel: string;           // Active, Low Risk, Moderate, At Risk, Inactive
+    assignedItems: AzureDevOpsWorkItem[];
+    totalStoryPoints: number;
+    estimatedWorkDaysRemaining: number;
+    lastWorkItemUpdate?: string;
+    activeItemCount: number;
+    totalItemCount: number;
+    reasoning: string;
+}
+
+export interface DeveloperInactivityReport {
+    projectId: string;
+    projectName: string;
+    generatedAt: string;
+    totalDevelopers: number;
+    activeCount: number;
+    atRiskCount: number;
+    inactiveCount: number;
+    developers: DeveloperActivityProfile[];
+}

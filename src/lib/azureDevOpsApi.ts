@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../config';
-import { AzureDevOpsProject, AzureDevOpsTeam, AzureDevOpsWorkItem } from './azureDevOpsTypes';
+import { AzureDevOpsProject, AzureDevOpsTeam, AzureDevOpsWorkItem, DeveloperInactivityReport } from './azureDevOpsTypes';
 
 // Azure DevOps API Client
 
@@ -42,6 +42,15 @@ export const azureDevOpsApi = {
         const response = await fetch(`${API_BASE_URL}/azuredevops/workitems/${workItemId}`);
         if (!response.ok) {
             throw new Error(`Failed to fetch work item ${workItemId}`);
+        }
+        return response.json();
+    },
+
+    // Get developer inactivity report for a project
+    async getDeveloperInactivity(projectId: string): Promise<DeveloperInactivityReport> {
+        const response = await fetch(`${API_BASE_URL}/azuredevops/projects/${encodeURIComponent(projectId)}/developer-inactivity`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch developer inactivity for project ${projectId}`);
         }
         return response.json();
     },
