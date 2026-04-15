@@ -23,9 +23,9 @@ export const queryKeys = {
     branches: (repositoryId: string) => ['branches', repositoryId] as const,
     commit: (commitId: string) => ['commit', commitId] as const,
     commitGithubDetails: (commitId: string) => ['commitGithubDetails', commitId] as const,
-    repositoryAnalytics: (repositoryId: string, branch: string) => ['repositoryAnalytics', repositoryId, branch] as const,
+    repositoryAnalytics: (repositoryId: string, branch: string, timelineDays: number) => ['repositoryAnalytics', repositoryId, branch, timelineDays] as const,
     repositorySummary: (repositoryId: string, branch: string) => ['repositorySummary', repositoryId, branch] as const,
-    teamInsights: (repositoryId: string, branch: string) => ['teamInsights', repositoryId, branch] as const,
+    teamInsights: (repositoryId: string, branch: string, timelineDays: number) => ['teamInsights', repositoryId, branch, timelineDays] as const,
     // Notes System
     fileStickyNotes: (fileId: string) => ['fileStickyNotes', fileId] as const,
     fileDiscussion: (fileId: string) => ['fileDiscussion', fileId] as const,
@@ -263,11 +263,18 @@ export function useFileCommits(fileId: string | undefined) {
 
 // ==================== Analytics Hooks ====================
 
-export function useRepositoryAnalytics(repositoryId: string | undefined, branchName: string) {
+export function useRepositoryAnalytics(
+    repositoryId: string | undefined,
+    branchName: string,
+    timelineDays: number = 7  // 0 = Lifetime, 7 = Past 7 Days, 30 = Past 30 Days
+) {
     return useQuery({
-        queryKey: queryKeys.repositoryAnalytics(repositoryId || '', branchName),
+        queryKey: queryKeys.repositoryAnalytics(repositoryId || '', branchName, timelineDays),
         queryFn: async () => {
-            const res = await fetch(`${API_BASE}/repositories/${repositoryId}/analytics?branchName=${encodeURIComponent(branchName)}`);
+            const url = `${API_BASE}/repositories/${repositoryId}/analytics` +
+                `?branchName=${encodeURIComponent(branchName)}` +
+                `&timelineDays=${timelineDays}`;
+            const res = await fetch(url);
             if (!res.ok) throw new Error('Failed to fetch analytics');
             return res.json();
         },
@@ -289,11 +296,18 @@ export function useRepositorySummary(repositoryId: string | undefined, branchNam
     });
 }
 
-export function useTeamInsights(repositoryId: string | undefined, branchName: string) {
+export function useTeamInsights(
+    repositoryId: string | undefined,
+    branchName: string,
+    timelineDays: number = 7  // 0 = Lifetime, 7 = Past 7 Days, 30 = Past 30 Days
+) {
     return useQuery({
-        queryKey: queryKeys.teamInsights(repositoryId || '', branchName),
+        queryKey: queryKeys.teamInsights(repositoryId || '', branchName, timelineDays),
         queryFn: async () => {
-            const res = await fetch(`${API_BASE}/repositories/${repositoryId}/team-insights?branchName=${encodeURIComponent(branchName)}`);
+            const url = `${API_BASE}/repositories/${repositoryId}/team-insights` +
+                `?branchName=${encodeURIComponent(branchName)}` +
+                `&timelineDays=${timelineDays}`;
+            const res = await fetch(url);
             if (!res.ok) throw new Error('Failed to fetch team insights');
             return res.json();
         },

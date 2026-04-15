@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { GitCommit, GitPullRequest, FolderTree, BarChart, RefreshCw, GitBranch, Clock, ArrowRight, StickyNote } from 'lucide-react';
+import { GitCommit, GitPullRequest, FolderTree, BarChart, RefreshCw, GitBranch, Clock, ArrowRight, StickyNote, Users, TrendingUp, Shield, Briefcase } from 'lucide-react';
 import FileTree from '../components/FileTree';
 import BackButton from '../components/BackButton';
 import RepositoryAnalytics from '../components/RepositoryAnalytics';
 import TeamInsights from '../components/TeamInsights';
 import { RepositoryNotesTab } from '../components/RepositoryNotesTab';
+import { TeamsTab } from '../components/TeamsTab';
+import { TeamContributorAnalysis } from '../components/TeamContributorAnalysis';
+import { AdminsTab } from '../components/AdminsTab';
+import { AzureDevOpsTab } from '../components/AzureDevOpsTab';
 import Pagination from '../components/Pagination';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +22,8 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useRepository, useBranches, useBranchCommits, usePullRequests, useBranchFiles } from '../hooks/useApiQueries';
+import { useRepository, useBranches, useBranchCommits, usePullRequests, useBranchFiles, useRepositoryAnalytics, useTeamInsights } from '../hooks/useApiQueries';
+import { useUserRole } from '../hooks/useRoleManagement';
 import { useTheme } from '@/components/theme-provider';
 import { API_BASE_URL } from '../config';
 
@@ -32,16 +37,25 @@ export default function RepoView({ user: _user }: RepoViewProps) {
     const [searchParams, setSearchParams] = useSearchParams();
     const { resolvedTheme } = useTheme();
 
+    // Get user ID from user object (not from separate localStorage key)
+    const storedUser = localStorage.getItem('user');
+    const parsedUser = storedUser ? JSON.parse(storedUser) : {};
+    const userId = parsedUser?.id || _user?.id || '';
+
+    // Get user role
+    const { data: userRole } = useUserRole(repositoryId, userId);
+    const isOwner = userRole?.isOwner ?? false;
+
     // Get initial tab from URL or default to 'commits'
-    const getInitialTab = (): 'commits' | 'prs' | 'files' | 'analytics' | 'notes' => {
+    const getInitialTab = (): 'commits' | 'prs' | 'files' | 'analytics' | 'notes' | 'teams' | 'admins' | 'contributor-analysis' | 'ado' => {
         const tabParam = searchParams.get('tab');
-        if (tabParam === 'prs' || tabParam === 'files' || tabParam === 'analytics' || tabParam === 'commits' || tabParam === 'notes') {
-            return tabParam;
+        if (tabParam === 'prs' || tabParam === 'files' || tabParam === 'analytics' || tabParam === 'commits' || tabParam === 'notes' || tabParam === 'teams' || tabParam === 'admins' || tabParam === 'contributor-analysis' || tabParam === 'ado') {
+            return tabParam as any;
         }
         return 'commits';
     };
 
-    const [activeTab, setActiveTab] = useState<'commits' | 'prs' | 'files' | 'analytics' | 'notes'>(getInitialTab());
+    const [activeTab, setActiveTab] = useState<'commits' | 'prs' | 'files' | 'analytics' | 'notes' | 'teams' | 'admins' | 'contributor-analysis' | 'ado'>(getInitialTab());
 
     // Get initial branch from URL or default to 'main'
     const getInitialBranch = (): string => {
@@ -61,12 +75,163 @@ export default function RepoView({ user: _user }: RepoViewProps) {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [lastRefreshTime, setLastRefreshTime] = useState<string | null>(null);
 
+    // Analytics timeline filter state: 0 = Lifetime, 7 = Past 7 Days, 30 = Past 30 Days
+    const [analyticsTimeline, setAnalyticsTimeline] = useState<0 | 7 | 30>(7);
+
     // React Query hooks for data fetching with caching
     const { data: repository, isLoading: loading, refetch: refetchRepository } = useRepository(repositoryId);
     const { data: branches = [] } = useBranches(repositoryId);
     const { data: commits = [] } = useBranchCommits(repositoryId, selectedBranch);
     const { data: allPrs = [] } = usePullRequests(repositoryId);
     const { data: files = [] } = useBranchFiles(repositoryId, selectedBranch);
+
+    // Analytics data hooks for report download
+    const { data: analyticsData } = useRepositoryAnalytics(repositoryId, selectedBranch, analyticsTimeline);
+    const { data: teamData } = useTeamInsights(repositoryId, selectedBranch, analyticsTimeline);
+
+    // Download analytics report as PDF
+    const downloadAnalyticsReport = async () => {
+        if (!repository || !analyticsData) return;
+
+        // Dynamically import jsPDF to avoid SSR issues
+        const { jsPDF } = await import('jspdf');
+        const autoTable = (await import('jspdf-autotable')).default;
+
+        const timelineLabel = analyticsTimeline === 0 ? 'Lifetime' : `Past ${analyticsTimeline} Days`;
+        const doc = new jsPDF();
+
+        // Colors
+        const primaryColor: [number, number, number] = [59, 130, 246]; // Blue
+        const textColor: [number, number, number] = [55, 65, 81];
+        const mutedColor: [number, number, number] = [107, 114, 128];
+
+        // Header
+        doc.setFillColor(...primaryColor);
+        doc.rect(0, 0, 210, 35, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Analytics Report', 14, 18);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`${repository.name} • ${selectedBranch} • ${timelineLabel}`, 14, 28);
+
+        // Generated date
+        doc.setTextColor(...mutedColor);
+        doc.setFontSize(9);
+        doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 45);
+
+        let yPos = 55;
+
+        // Overview Section
+        doc.setTextColor(...textColor);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Overview', 14, yPos);
+        yPos += 8;
+
+        // Metrics table
+        const metricsData = [
+            ['Total Files', String(analyticsData.totalFiles || 0)],
+            ['Total Commits', String(analyticsData.totalCommits || 0)],
+            ['Recent Commits', String(analyticsData.recentCommits || 0)],
+            ['Contributors', String(analyticsData.contributors || 0)],
+        ];
+
+        if (teamData) {
+            metricsData.push(
+                ['Active Contributors', String(teamData.activeContributors || 0)],
+                ['Most Active Day', teamData.mostActiveDay || 'N/A']
+            );
+        }
+
+        autoTable(doc, {
+            startY: yPos,
+            head: [['Metric', 'Value']],
+            body: metricsData,
+            theme: 'striped',
+            headStyles: { fillColor: primaryColor },
+            margin: { left: 14, right: 14 },
+        });
+
+        yPos = (doc as any).lastAutoTable.finalY + 15;
+
+        // Hotspots Section
+        if (analyticsData.hotspots && analyticsData.hotspots.length > 0) {
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Code Hotspots', 14, yPos);
+            yPos += 8;
+
+            const hotspotsData = analyticsData.hotspots.slice(0, 10).map((h: any, i: number) => [
+                String(i + 1),
+                h.filePath?.split('/').pop() || h.filePath,
+                String(h.changes || h.changeCount || 0)
+            ]);
+
+            autoTable(doc, {
+                startY: yPos,
+                head: [['#', 'File', 'Changes']],
+                body: hotspotsData,
+                theme: 'striped',
+                headStyles: { fillColor: primaryColor },
+                margin: { left: 14, right: 14 },
+                columnStyles: {
+                    0: { cellWidth: 15 },
+                    1: { cellWidth: 'auto' },
+                    2: { cellWidth: 30 }
+                }
+            });
+
+            yPos = (doc as any).lastAutoTable.finalY + 15;
+        }
+
+        // Team Contributors Section
+        if (teamData?.contributors && teamData.contributors.length > 0) {
+            // Check if we need a new page
+            if (yPos > 220) {
+                doc.addPage();
+                yPos = 20;
+            }
+
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Top Contributors', 14, yPos);
+            yPos += 8;
+
+            const contributorsData = teamData.contributors.slice(0, 10).map((c: any) => [
+                c.name || c.username || c.authorName || 'Unknown',
+                String(c.commits || c.totalCommits || 0),
+                c.active === true ? 'Active' : c.active === false ? 'Inactive' : (c.isActive === true ? 'Active' : c.isActive === false ? 'Inactive' : '-')
+            ]);
+
+            autoTable(doc, {
+                startY: yPos,
+                head: [['Contributor', 'Commits', 'Status']],
+                body: contributorsData,
+                theme: 'striped',
+                headStyles: { fillColor: primaryColor },
+                margin: { left: 14, right: 14 },
+            });
+        }
+
+        // Footer
+        const pageCount = doc.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setTextColor(...mutedColor);
+            doc.setFontSize(8);
+            doc.text(
+                `Page ${i} of ${pageCount} • ForeSite Analytics`,
+                doc.internal.pageSize.width / 2,
+                doc.internal.pageSize.height - 10,
+                { align: 'center' }
+            );
+        }
+
+        // Save
+        doc.save(`${repository.name}-analytics-${timelineLabel.replace(' ', '-').toLowerCase()}.pdf`);
+    };
 
     // Filter PRs based on prFilter
     const prs = prFilter === 'all'
@@ -238,35 +403,88 @@ export default function RepoView({ user: _user }: RepoViewProps) {
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={(value) => {
-                const newTab = value as 'commits' | 'prs' | 'files' | 'analytics' | 'notes';
+                const newTab = value as 'commits' | 'prs' | 'files' | 'analytics' | 'notes' | 'teams' | 'admins' | 'contributor-analysis' | 'ado';
                 setActiveTab(newTab);
                 const newParams = new URLSearchParams(searchParams);
                 newParams.set('tab', newTab);
                 setSearchParams(newParams);
             }}>
-                <TabsList className="grid w-full max-w-2xl grid-cols-5">
-                    <TabsTrigger value="commits" className="gap-2">
-                        <GitCommit className="h-4 w-4" />
-                        <span className="hidden sm:inline">Commits</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="prs" className="gap-2">
-                        <GitPullRequest className="h-4 w-4" />
-                        <span className="hidden sm:inline">PRs</span>
-                        {/* <span className="sm:hidden">{allPrs.length}</span> */}
-                    </TabsTrigger>
-                    <TabsTrigger value="files" className="gap-2">
-                        <FolderTree className="h-4 w-4" />
-                        <span className="hidden sm:inline">Files</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="analytics" className="gap-2">
-                        <BarChart className="h-4 w-4" />
-                        <span className="hidden sm:inline">Analytics</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="notes" className="gap-2">
-                        <StickyNote className="h-4 w-4" />
-                        <span className="hidden sm:inline">Notes</span>
-                    </TabsTrigger>
-                </TabsList>
+                {/* Tabs Row with Timeline Selector */}
+                <div className="flex items-center gap-4 flex-wrap">
+                    <TabsList className={`grid ${isOwner ? 'grid-cols-9' : 'grid-cols-8'}`}>
+                        <TabsTrigger value="commits" className="gap-2">
+                            <GitCommit className="h-4 w-4" />
+                            <span className="hidden sm:inline">Commits</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="prs" className="gap-2">
+                            <GitPullRequest className="h-4 w-4" />
+                            <span className="hidden sm:inline">PRs</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="files" className="gap-2">
+                            <FolderTree className="h-4 w-4" />
+                            <span className="hidden sm:inline">Files</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="analytics" className="gap-2">
+                            <BarChart className="h-4 w-4" />
+                            <span className="hidden sm:inline">Analytics</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="ado" className="gap-2">
+                            <Briefcase className="h-4 w-4" />
+                            <span className="hidden sm:inline">ADO</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="notes" className="gap-2">
+                            <StickyNote className="h-4 w-4" />
+                            <span className="hidden sm:inline">Notes</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="teams" className="gap-2">
+                            <Users className="h-4 w-4" />
+                            <span className="hidden sm:inline">Teams</span>
+                        </TabsTrigger>
+                        {isOwner && (
+                            <TabsTrigger value="admins" className="gap-2">
+                                <Shield className="h-4 w-4" />
+                                <span className="hidden sm:inline">Admins</span>
+                            </TabsTrigger>
+                        )}
+                        <TabsTrigger value="contributor-analysis" className="gap-2">
+                            <TrendingUp className="h-4 w-4" />
+                            <span className="hidden sm:inline">Contributors</span>
+                        </TabsTrigger>
+                    </TabsList>
+
+                    {/* Timeline Selector - visible when on Analytics or Contributors tab */}
+                    {(activeTab === 'analytics' || activeTab === 'contributor-analysis') && (
+                        <div className="flex items-center gap-0.5 rounded-md border border-border/50 p-0.5 ml-auto">
+                            <button
+                                onClick={() => setAnalyticsTimeline(7)}
+                                className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${analyticsTimeline === 7
+                                    ? 'bg-muted text-foreground'
+                                    : 'text-muted-foreground/70 hover:text-muted-foreground'
+                                    }`}
+                            >
+                                7d
+                            </button>
+                            <button
+                                onClick={() => setAnalyticsTimeline(30)}
+                                className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${analyticsTimeline === 30
+                                    ? 'bg-muted text-foreground'
+                                    : 'text-muted-foreground/70 hover:text-muted-foreground'
+                                    }`}
+                            >
+                                30d
+                            </button>
+                            <button
+                                onClick={() => setAnalyticsTimeline(0)}
+                                className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${analyticsTimeline === 0
+                                    ? 'bg-muted text-foreground'
+                                    : 'text-muted-foreground/70 hover:text-muted-foreground'
+                                    }`}
+                            >
+                                All
+                            </button>
+                        </div>
+                    )}
+                </div>
 
                 {/* Commits Tab */}
                 <TabsContent value="commits" className="mt-6 space-y-4">
@@ -447,22 +665,45 @@ export default function RepoView({ user: _user }: RepoViewProps) {
 
                 {/* Analytics Tab */}
                 <TabsContent value="analytics" className="mt-6 space-y-8">
-                    <div>
-                        <h2 className="font-heading text-2xl font-semibold mb-6">Repository Analytics</h2>
-                        <RepositoryAnalytics repositoryId={repositoryId!} branchName={selectedBranch} />
-                    </div>
+                    <RepositoryAnalytics repositoryId={repositoryId!} branchName={selectedBranch} timelineDays={analyticsTimeline} onExport={downloadAnalyticsReport} />
 
                     <div>
                         <h2 className="font-heading text-2xl font-semibold mb-6">Team Insights</h2>
-                        <TeamInsights repositoryId={repositoryId!} branchName={selectedBranch} />
+                        <TeamInsights repositoryId={repositoryId!} branchName={selectedBranch} timelineDays={analyticsTimeline} />
                     </div>
+                </TabsContent>
+
+                {/* Azure DevOps Tab */}
+                <TabsContent value="ado" className="mt-6">
+                    <AzureDevOpsTab repositoryName={repository.name} />
                 </TabsContent>
 
                 {/* Notes Tab */}
                 <TabsContent value="notes" className="mt-6">
                     <RepositoryNotesTab repositoryId={repositoryId!} />
                 </TabsContent>
+
+                {/* Teams Tab */}
+                <TabsContent value="teams" className="mt-6">
+                    <TeamsTab repositoryId={repositoryId!} />
+                </TabsContent>
+
+                {/* Admins Tab (Owner Only) */}
+                {isOwner && (
+                    <TabsContent value="admins" className="mt-6">
+                        <AdminsTab
+                            repositoryId={repositoryId!}
+                            userId={userId}
+                            isOwner={isOwner}
+                        />
+                    </TabsContent>
+                )}
+
+                {/* Contributor Analysis Tab */}
+                <TabsContent value="contributor-analysis" className="mt-6">
+                    <TeamContributorAnalysis repositoryId={repositoryId!} timelineDays={analyticsTimeline} />
+                </TabsContent>
             </Tabs>
-        </div>
+        </div >
     );
 }

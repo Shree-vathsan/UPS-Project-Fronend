@@ -4,7 +4,7 @@ import {
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     Area, AreaChart
 } from 'recharts';
-import { BarChart as BarChartIcon, FileText, Users, Zap, Bot, Heart, TrendingUp, Folder, Flame, PieChart as PieChartIcon } from 'lucide-react';
+import { BarChart as BarChartIcon, FileText, Users, Zap, Bot, Heart, TrendingUp, Folder, Flame, PieChart as PieChartIcon, Download } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import MetricCard from './MetricCard';
 import { useRepositoryAnalytics, useRepositorySummary } from '../hooks/useApiQueries';
@@ -12,11 +12,13 @@ import { useRepositoryAnalytics, useRepositorySummary } from '../hooks/useApiQue
 interface RepositoryAnalyticsProps {
     repositoryId: string;
     branchName: string;
+    timelineDays: 0 | 7 | 30;  // 0 = Lifetime, 7 = Past 7 Days, 30 = Past 30 Days
+    onExport?: () => void;
 }
 
-export default function RepositoryAnalytics({ repositoryId, branchName }: RepositoryAnalyticsProps) {
+export default function RepositoryAnalytics({ repositoryId, branchName, timelineDays, onExport }: RepositoryAnalyticsProps) {
     // React Query hooks for data fetching with caching
-    const { data: analyticsData, isLoading: analyticsLoading } = useRepositoryAnalytics(repositoryId, branchName);
+    const { data: analyticsData, isLoading: analyticsLoading } = useRepositoryAnalytics(repositoryId, branchName, timelineDays);
     const { data: summaryData } = useRepositorySummary(repositoryId, branchName);
 
     const loading = analyticsLoading;
@@ -47,11 +49,13 @@ export default function RepositoryAnalytics({ repositoryId, branchName }: Reposi
         }));
 
         // Calculate metrics
+        // For Lifetime (0), use activity data length for average calculation
+        const divisor = timelineDays === 0 ? (activityData.length || 1) : timelineDays;
         const avgCommitsPerDay = activityData.length > 0
-            ? (analyticsData.recentCommits / 7).toFixed(1)
+            ? (analyticsData.recentCommits / divisor).toFixed(1)
             : '0';
 
-        const codeHealth = Math.min(100, Math.floor((analyticsData.recentCommits / 7) * 20 + 50));
+        const codeHealth = Math.min(100, Math.floor((analyticsData.recentCommits / divisor) * 20 + 50));
 
         const metrics = {
             totalFiles: analyticsData.totalFiles || 0,
@@ -63,7 +67,7 @@ export default function RepositoryAnalytics({ repositoryId, branchName }: Reposi
         };
 
         return { activityData, fileTypeData, hotspots, metrics };
-    }, [analyticsData]);
+    }, [analyticsData, timelineDays]);
 
     const COLORS = ['#58a6ff', '#3fb950', '#d29922', '#f85149', '#bc8cff', '#f0883e', '#56d4dd', '#db6d28'];
 
@@ -107,6 +111,20 @@ export default function RepositoryAnalytics({ repositoryId, branchName }: Reposi
 
     return (
         <div style={{ display: 'grid', gap: '24px' }}>
+            {/* Analytics Dashboard Header with Export Button */}
+            <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-heading font-bold">Analytics Dashboard</h2>
+                {onExport && (
+                    <button
+                        onClick={onExport}
+                        className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground/70 hover:text-muted-foreground transition-colors"
+                    >
+                        <Download className="h-3.5 w-3.5" />
+                        <span>Export</span>
+                    </button>
+                )}
+            </div>
+
             {/* Metrics Overview */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
                 <MetricCard
@@ -129,21 +147,27 @@ export default function RepositoryAnalytics({ repositoryId, branchName }: Reposi
                 />
                 <MetricCard
                     icon={<Users className="h-5 w-5" />}
-                    title="Contributors"
+                    title={timelineDays === 0 ? 'All Contributors' : `Contributors (${timelineDays}d)`}
                     value={metrics?.contributors || 0}
-                    subtitle="Active developers"
+                    subtitle={timelineDays === 0 ? 'All-time contributors' : `Active in last ${timelineDays} days`}
                     color="#d29922"
-                    tooltip="Number of unique contributors who have committed to the repository. Shows community size and collaboration level."
-                    formula="Count(UniqueAuthors)"
+                    tooltip={timelineDays === 0
+                        ? 'Total number of unique contributors in the repository history.'
+                        : `Number of unique contributors who have committed in the last ${timelineDays} days.`
+                    }
+                    formula={timelineDays === 0 ? 'Count(UniqueAuthors)' : `Count(UniqueAuthors where date > now - ${timelineDays}days)`}
                 />
                 <MetricCard
                     icon={<Zap className="h-5 w-5" />}
-                    title="Last 7 Days"
+                    title={timelineDays === 0 ? 'All Time Commits' : `Last ${timelineDays} Days`}
                     value={metrics?.recentCommits || 0}
-                    subtitle="Recent activity"
+                    subtitle={timelineDays === 0 ? 'Total commit activity' : 'Recent activity'}
                     color="#bc8cff"
-                    tooltip="Number of commits made in the last 7 days. A good indicator of current project velocity and active development."
-                    formula="Count(Commits where date > now - 7days)"
+                    tooltip={timelineDays === 0
+                        ? 'Total number of commits in the repository history (shown in chart: last 365 days).'
+                        : `Number of commits made in the last ${timelineDays} days. A good indicator of current project velocity.`
+                    }
+                    formula={timelineDays === 0 ? 'Count(AllCommits)' : `Count(Commits where date > now - ${timelineDays}days)`}
                 />
             </div>
 
@@ -228,7 +252,10 @@ export default function RepositoryAnalytics({ repositoryId, branchName }: Reposi
                         <h3 className="text-xl font-heading font-bold">Commit Activity Timeline</h3>
                     </div>
                     <p className="text-sm text-muted-foreground mb-4">
-                        Last 30 days of commit activity
+                        {timelineDays === 0
+                            ? 'All-time commit activity (showing last 365 days)'
+                            : `Last ${timelineDays} days of commit activity`
+                        }
                     </p>
                     <ResponsiveContainer width="100%" height={250}>
                         <AreaChart data={activityData}>

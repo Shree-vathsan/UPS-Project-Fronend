@@ -356,7 +356,7 @@ export const api = {
 
     // Users with Repo Access (for @mention autocomplete)
     async getUsersWithRepoAccess(repositoryId: string) {
-        const res = await fetch(`${API_BASE}/api/notes/users/${repositoryId}`);
+        const res = await fetch(`${API_BASE}/repositories/${repositoryId}/users`);
         return handleResponse(res);
     },
 
@@ -515,6 +515,57 @@ export const api = {
         }
         const res = await fetch(`${API_BASE}/dashboard/${userId}/pending-reviews?limit=${limit}`, {
             headers
+        });
+        return handleResponse(res);
+    },
+
+    // ==========================================
+    // RBAC & ACCESS CONTROL
+    // ==========================================
+
+    async getUserRole(repositoryId: string, userId: string) {
+        const res = await fetch(`${API_BASE}/repositories/${repositoryId}/user-role?userId=${userId}`);
+        return handleResponse(res);
+    },
+
+    async getAdmins(repositoryId: string, userId: string) {
+        const res = await fetch(`${API_BASE}/repositories/${repositoryId}/admins?userId=${userId}`);
+        return handleResponse(res);
+    },
+
+    async addAdmin(repositoryId: string, currentUserId: string, adminUserId: string) {
+        const res = await fetch(`${API_BASE}/repositories/${repositoryId}/admins`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ currentUserId, adminUserId })
+        });
+        return handleResponse(res);
+    },
+
+    async removeAdmin(repositoryId: string, adminId: string, userId: string) {
+        const res = await fetch(`${API_BASE}/repositories/${repositoryId}/admins/${adminId}?userId=${userId}`, {
+            method: 'DELETE'
+        });
+        return handleResponse(res);
+    },
+
+    // ==========================================
+    // CONTRIBUTOR NEGATIVE SCORES
+    // ==========================================
+
+    async getNegativeScores(repositoryId: string, timelineDays: number = 0) {
+        const res = await fetch(`${API_BASE}/repositories/${repositoryId}/negative-scores?timelineDays=${timelineDays}`);
+        return handleResponse(res);
+    },
+
+    async getContributorEvents(repositoryId: string, contributorName: string, timelineDays: number = 0) {
+        const res = await fetch(`${API_BASE}/repositories/${repositoryId}/negative-scores/${encodeURIComponent(contributorName)}/events?timelineDays=${timelineDays}`);
+        return handleResponse(res);
+    },
+
+    async calculateNegativeScores(repositoryId: string, userId: string) {
+        const res = await fetch(`${API_BASE}/repositories/${repositoryId}/negative-scores/calculate?userId=${userId}`, {
+            method: 'POST'
         });
         return handleResponse(res);
     }
